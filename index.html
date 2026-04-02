@@ -581,7 +581,7 @@ async function loadData() {
 }
 
 async function fetchMetabase() {
-  // COLE O LINK DO GOOGLE APPS SCRIPT ENTRE AS ASPAS ABAIXO:
+  // MANTENHA O SEU LINK DO GOOGLE AQUI:
   const scriptUrl = "https://script.google.com/macros/s/AKfycbyajGAntrVothf3r-izsffVqFxi3351KF1Ug1vBfSKFnX1tw7gtWY7YecgZMnUNEiQ20A/exec"; 
 
   const res = await fetch(scriptUrl);
@@ -603,7 +603,8 @@ async function fetchMetabase() {
     return data.data.rows.map(r => { const o={}; cols.forEach((c,i)=>o[c]=r[i]); return o; });
   }
   
-  throw new Error('Formato de resposta do Metabase não reconhecido.');
+  // 👇 A MÁGICA ESTÁ AQUI: Vamos imprimir na tela a resposta exata do Metabase!
+  throw new Error("Metabase respondeu: " + JSON.stringify(data).substring(0, 150));
 }
 
 // ═══════════════════════════════════════════════════════════
