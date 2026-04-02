@@ -584,24 +584,28 @@ async function loadData() {
 }
 
 async function fetchMetabase() {
-  const { url, token, cardId, mode } = STATE.config;
-  const headers = { 'Content-Type':'application/json' };
-  if(mode === 'session') headers['X-Metabase-Session'] = token;
-  else headers['X-Api-Key'] = token;
+  // COLE O LINK DO GOOGLE APPS SCRIPT ENTRE AS ASPAS ABAIXO:
+  const scriptUrl = "https://script.google.com/macros/s/AKfycbyajGAntrVothf3r-izsffVqFxi3351KF1Ug1vBfSKFnX1tw7gtWY7YecgZMnUNEiQ20A/exec"; 
 
-  const res = await fetch(`${url}/api/card/${cardId}/query/json`, { method:'POST', headers, body:'{}' });
+  const res = await fetch(scriptUrl);
+  
   if(!res.ok) {
-    const txt = await res.text();
-    throw new Error(`Metabase retornou ${res.status}: ${txt.slice(0,200)}`);
+    throw new Error("Falha na comunicação com o Google Apps Script.");
   }
+  
   const data = await res.json();
-  // Metabase /query/json returns array of row objects
+  
+  if(data.error) {
+    throw new Error("Erro da Ponte: " + data.error);
+  }
+
   if(Array.isArray(data)) return data;
-  // Or might return { data: { rows, cols } }
+  
   if(data.data && data.data.rows) {
     const cols = data.data.cols.map(c => c.display_name || c.name);
     return data.data.rows.map(r => { const o={}; cols.forEach((c,i)=>o[c]=r[i]); return o; });
   }
+  
   throw new Error('Formato de resposta do Metabase não reconhecido.');
 }
 
