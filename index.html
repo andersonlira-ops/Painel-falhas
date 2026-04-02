@@ -1,312 +1,454 @@
-<!DOCTYPE html> 
+<!DOCTYPE html>
 <html lang="pt-BR">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>DIAGFLEET — Central de Diagnóstico</title>
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns"></script>
-    <style>
-        :root {
-            --bg: #0D1117; --surface: #161B22; --surface2: #1C2128; --border: #30363D;
-            --border2: #484F58; --text: #E6EDF3; --text2: #8B949E; --text3: #484F58;
-            --amber: #F0A500; --red: #F85149; --green: #3FB950; --blue: #58A6FF;
-            --orange: #E3894B; --red-bg: rgba(248,81,73,.1); --amber-bg: rgba(240,165,0,.1);
-            --blue-bg: rgba(88,166,255,.08); --radius-lg: 10px;
-        }
-        * { box-sizing:border-box; margin:0; padding:0; }
-        html { background:var(--bg); color:var(--text); font-family:'IBM Plex Sans',sans-serif; font-size:13px; }
-        .app { display:flex; flex-direction:column; min-height:100vh; }
-        .header { background:var(--surface); border-bottom:1px solid var(--border); padding:0 24px; height:56px; display:flex; align-items:center; justify-content:space-between; position:sticky; top:0; z-index:100; }
-        .logo { display:flex; align-items:center; gap:10px; font-weight:600; font-family:'IBM Plex Mono',monospace; }
-        .logo span { color:var(--amber); }
-        .status-dot { width:7px; height:7px; border-radius:50%; background:var(--text3); display:inline-block; margin-right:5px; }
-        .status-dot.live { background:var(--green); box-shadow: 0 0 8px var(--green); }
-        .status-dot.error { background:var(--red); }
-        .btn { padding:6px 14px; border-radius:6px; border:1px solid var(--border); background:transparent; color:var(--text); cursor:pointer; font-size:12px; }
-        .btn.primary { background:var(--amber); color:#000; border:none; font-weight:600; }
-        .main { flex:1; padding:20px; max-width:1400px; width:100%; margin:0 auto; }
-        .kpis { display:grid; grid-template-columns:repeat(5,1fr); gap:12px; margin-bottom:20px; }
-        .kpi { background:var(--surface); border:1px solid var(--border); border-radius:var(--radius-lg); padding:15px; }
-        .kpi-val { font-family:'IBM Plex Mono',monospace; font-size:24px; font-weight:600; display:block; margin-top:5px; }
-        .decisions { display:grid; grid-template-columns:repeat(auto-fill,minmax(320px,1fr)); gap:12px; margin-bottom:20px; }
-        .decision-card { background:var(--surface); border:1px solid var(--border); border-radius:var(--radius-lg); border-left:4px solid var(--border); padding:15px; }
-        .route-eletrica-urgente { border-left-color: var(--red); }
-        .route-eletrica-investigar { border-left-color: var(--orange); }
-        .route-mecanica { border-left-color: var(--blue); }
-        .bat-bar { height:6px; background:var(--border); border-radius:3px; margin:10px 0; overflow:hidden; }
-        .bat-fill { height:100%; transition: width 0.5s; }
-        .card { background:var(--surface); border:1px solid var(--border); border-radius:var(--radius-lg); padding:16px; margin-bottom:20px; }
-        table { width:100%; border-collapse:collapse; font-size:11px; margin-top:10px; }
-        th { text-align:left; color:var(--text2); padding:8px; border-bottom:1px solid var(--border); }
-        td { padding:10px 8px; border-bottom:1px solid var(--border); }
-        .tag { padding:2px 6px; border-radius:4px; font-weight:600; font-size:10px; }
-        .tag-crit { background:var(--red-bg); color:var(--red); }
-        .tag-warn { background:var(--amber-bg); color:var(--amber); }
-        .loading-wrap { display:flex; flex-direction:column; align-items:center; padding:100px; color:var(--text2); }
-        .spinner { width:30px; height:30px; border:3px solid var(--border); border-top-color:var(--amber); border-radius:50%; animation:spin 1s linear infinite; margin-bottom:15px; }
-        @keyframes spin { to { transform:rotate(360deg); } }
-    </style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>DIAGFLEET — Bateria & Falhas</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns"></script>
+<style>
+:root {
+  --bg:         #0D1117;
+  --surface:    #161B22;
+  --surface2:   #1C2128;
+  --border:     #30363D;
+  --border2:    #484F58;
+  --text:       #E6EDF3;
+  --text2:      #8B949E;
+  --text3:      #484F58;
+  --amber:      #F0A500;
+  --amber-bg:   rgba(240,165,0,.1);
+  --red:        #F85149;
+  --red-bg:     rgba(248,81,73,.1);
+  --green:      #3FB950;
+  --green-bg:   rgba(63,185,80,.1);
+  --blue:       #58A6FF;
+  --blue-bg:    rgba(88,166,255,.08);
+  --orange:     #E3894B;
+  --orange-bg:  rgba(227,137,75,.1);
+  --radius:     6px;
+  --radius-lg:  10px;
+}
+* { box-sizing:border-box; margin:0; padding:0; }
+html { background:var(--bg); color:var(--text); font-family:'IBM Plex Sans',sans-serif; font-size:14px; line-height:1.6; }
+body { min-height:100vh; }
+code, .mono { font-family:'IBM Plex Mono',monospace; }
+
+/* ── Scrollbar ── */
+::-webkit-scrollbar { width:6px; height:6px; }
+::-webkit-scrollbar-track { background:var(--surface); }
+::-webkit-scrollbar-thumb { background:var(--border2); border-radius:3px; }
+
+/* ── Layout ── */
+.app { display:flex; flex-direction:column; min-height:100vh; }
+.header { background:var(--surface); border-bottom:1px solid var(--border); padding:0 24px; height:56px; display:flex; align-items:center; justify-content:space-between; position:sticky; top:0; z-index:100; }
+.logo { display:flex; align-items:center; gap:10px; }
+.logo-icon { width:28px; height:28px; background:var(--amber); border-radius:6px; display:flex; align-items:center; justify-content:center; font-size: 16px; }
+.logo-name { font-family:'IBM Plex Mono',monospace; font-weight:600; font-size:13px; letter-spacing:.04em; color:var(--text); }
+.logo-name span { color:var(--amber); }
+
+.header-status { display:flex; align-items:center; gap:6px; font-size:11px; color:var(--text2); }
+.status-dot { width:6px; height:6px; border-radius:50%; background:var(--text3); }
+.status-dot.live { background:var(--green); animation:pulse 2s infinite; }
+.status-dot.error { background:var(--red); }
+@keyframes pulse { 0%,100%{opacity:1;} 50%{opacity:.4;} }
+
+.btn { display:inline-flex; align-items:center; gap:6px; padding:6px 12px; border-radius:var(--radius); border:1px solid var(--border); background:transparent; color:var(--text2); font-size:12px; cursor:pointer; transition:all .15s; }
+.btn:hover { border-color:var(--border2); color:var(--text); background:var(--surface2); }
+.btn.primary { background:var(--amber); color:#000; border-color:var(--amber); font-weight:600; }
+
+.main { flex:1; padding:20px 24px; max-width:1600px; width:100%; margin:0 auto; }
+
+/* ── KPIs ── */
+.kpis { display:grid; grid-template-columns:repeat(5,1fr); gap:12px; margin-bottom:20px; }
+.kpi { background:var(--surface); border:1px solid var(--border); border-radius:var(--radius-lg); padding:14px 16px; }
+.kpi-label { font-size:10px; font-weight:500; text-transform:uppercase; color:var(--text2); margin-bottom:6px; }
+.kpi-value { font-family:'IBM Plex Mono',monospace; font-size:26px; font-weight:600; color:var(--text); line-height:1; }
+.kpi-sub { font-size:11px; color:var(--text2); margin-top:4px; }
+.kpi.critical .kpi-value { color:var(--red); }
+.kpi.warning .kpi-value { color:var(--amber); }
+
+/* ── Section titles ── */
+.section-header { display:flex; align-items:center; justify-content:space-between; margin-bottom:12px; }
+.section-title { font-size:11px; font-weight:500; text-transform:uppercase; letter-spacing:.08em; color:var(--text2); display:flex; align-items:center; gap:8px; }
+.section-title::before { content:''; width:3px; height:12px; background:var(--amber); border-radius:2px; display:inline-block; }
+
+/* ── Decision cards ── */
+.decisions { display:grid; grid-template-columns:repeat(auto-fill,minmax(340px,1fr)); gap:12px; margin-bottom:20px; }
+.decision-card { background:var(--surface); border:1px solid var(--border); border-radius:var(--radius-lg); overflow:hidden; transition:border-color .15s; }
+.decision-card.route-eletrica { border-left:4px solid var(--red); }
+.decision-card.route-eletrica-monitor { border-left:4px solid var(--orange); }
+.decision-card.route-mecanica { border-left:4px solid var(--blue); }
+.dc-header { padding:12px 14px; display:flex; align-items:center; justify-content:space-between; border-bottom:1px solid var(--border); }
+.dc-plate { font-family:'IBM Plex Mono',monospace; font-size:16px; font-weight:600; }
+.routing-badge { padding:4px 10px; border-radius:4px; font-size:10px; font-weight:600; text-transform:uppercase; }
+.routing-badge.eletrica { background:var(--red-bg); color:var(--red); }
+.routing-badge.eletrica-monitor { background:var(--orange-bg); color:var(--orange); }
+.routing-badge.mecanica { background:var(--blue-bg); color:var(--blue); }
+
+.dc-body { padding:12px 14px; }
+.dc-bat-row { display:flex; align-items:center; gap:8px; margin-bottom:10px; }
+.dc-bat-val { font-family:'IBM Plex Mono',monospace; font-size:20px; font-weight:600; }
+.bat-bar { flex:1; height:6px; background:var(--surface2); border-radius:3px; overflow:hidden; }
+.bat-fill { height:100%; transition:width .5s; }
+.fault-tag { background:var(--surface2); border:1px solid var(--border); border-radius:4px; padding:3px 7px; font-family:'IBM Plex Mono',monospace; font-size:10px; color:var(--text); margin-right:4px; }
+.dc-insight { font-size:11px; color:var(--text2); line-height:1.5; padding:8px 10px; background:var(--surface2); border-radius:var(--radius); border-left:2px solid var(--border2); }
+
+/* ── Grid ── */
+.grid3 { display:grid; grid-template-columns:2fr 1fr; gap:16px; margin-bottom:20px; }
+.card { background:var(--surface); border:1px solid var(--border); border-radius:var(--radius-lg); padding:16px; }
+.chart-wrap { position:relative; width:100%; height:280px; }
+
+/* ── Table ── */
+.tbl-wrap { overflow-x:auto; }
+table.dtc { width:100%; border-collapse:collapse; font-size:12px; }
+table.dtc th { font-size:10px; color:var(--text2); padding:8px 10px; text-align:left; border-bottom:1px solid var(--border); text-transform:uppercase; }
+table.dtc td { padding:9px 10px; border-bottom:1px solid var(--border); }
+.tag { padding:2px 8px; border-radius:20px; font-size:10px; font-weight:500; }
+.tag-crit { background:var(--red-bg); color:var(--red); }
+.tag-warn { background:var(--amber-bg); color:var(--amber); }
+.tag-ok   { background:var(--green-bg); color:var(--green); }
+
+/* ── Heatmap ── */
+.heatmap-grid { display:grid; grid-template-columns:repeat(24,1fr); gap:3px; margin-top:10px; }
+.hm-cell { aspect-ratio:1; border-radius:2px; background:var(--surface2); position:relative; }
+.hm-label { display:flex; justify-content:space-between; font-size:9px; color:var(--text3); margin-top:4px; font-family:'IBM Plex Mono',monospace; }
+
+/* ── Insights ── */
+.insights-panel { background:var(--surface); border:1px solid var(--border); border-radius:var(--radius-lg); padding:16px; margin-bottom:20px; }
+.insight-item { display:flex; gap:10px; padding:10px 12px; background:var(--surface2); border-radius:var(--radius); border-left:3px solid var(--border2); font-size:12px; margin-bottom:8px; }
+.insight-item.critical { border-left-color:var(--red); }
+.insight-item.warning { border-left-color:var(--amber); }
+
+/* ── Loading ── */
+.loading-wrap { display:flex; flex-direction:column; align-items:center; justify-content:center; padding:100px; color:var(--text2); }
+.spinner { width:30px; height:30px; border:3px solid var(--border); border-top-color:var(--amber); border-radius:50%; animation:spin .7s linear infinite; margin-bottom:15px; }
+@keyframes spin { to{transform:rotate(360deg);} }
+
+@media (max-width:900px) { .kpis { grid-template-columns:repeat(2,1fr); } .grid3 { grid-template-columns:1fr; } }
+</style>
 </head>
 <body>
 
 <div class="app">
-    <div class="header">
-        <div class="logo">⚡ DIAG<span>FLEET</span></div>
-        <div style="font-size:11px; color:var(--text2)">
-            <span class="status-dot" id="statusDot"></span><span id="statusText">Conectando...</span>
-        </div>
-        <button class="btn primary" onclick="loadData()">🔄 Sincronizar Agora</button>
+  <div class="header">
+    <div class="logo">
+      <div class="logo-icon">⚡</div>
+      <span class="logo-name">DIAG<span>FLEET</span></span>
+    </div>
+    <div class="header-status">
+      <div class="status-dot" id="statusDot"></div>
+      <span id="statusText">Conectando...</span>
+    </div>
+    <div class="header-right">
+      <span id="lastUpdate" style="font-size:11px; color:var(--text3); font-family:monospace; margin-right:15px;">—</span>
+      <button class="btn primary" onclick="loadData()">🔄 Sincronizar Agora</button>
+    </div>
+  </div>
+
+  <div class="main">
+    <div id="emptyState" class="loading-wrap">
+        <div class="spinner"></div>
+        <p>Acessando Metabase via Google Bridge...</p>
     </div>
 
-    <div class="main">
-        <div id="emptyState" class="loading-wrap">
-            <div class="spinner"></div>
-            <p>Buscando dados da frota no Metabase...</p>
+    <div id="dashContent" style="display:none;">
+      <div class="kpis">
+        <div class="kpi critical">
+          <div class="kpi-label">Elétrica Urgente</div>
+          <div class="kpi-value" id="kpi1">0</div>
+          <div class="kpi-sub">veículos urgentes</div>
         </div>
-
-        <div id="dashContent" style="display:none;">
-            <div class="kpis">
-                <div class="kpi" style="border-top: 3px solid var(--red)">
-                    <span style="font-size:10px; color:var(--text2)">ELÉTRICA URGENTE</span>
-                    <span class="kpi-val" id="kpi1" style="color:var(--red)">0</span>
-                </div>
-                <div class="kpi" style="border-top: 3px solid var(--orange)">
-                    <span style="font-size:10px; color:var(--text2)">INVESTIGAR BATERIA</span>
-                    <span class="kpi-val" id="kpi2" style="color:var(--orange)">0</span>
-                </div>
-                <div class="kpi" style="border-top: 3px solid var(--blue)">
-                    <span style="font-size:10px; color:var(--text2)">MECÂNICA</span>
-                    <span class="kpi-val" id="kpi3" style="color:var(--blue)">0</span>
-                </div>
-                <div class="kpi">
-                    <span style="font-size:10px; color:var(--text2)">DIAGNÓSTICOS</span>
-                    <span class="kpi-val" id="kpi4">0</span>
-                </div>
-                <div class="kpi">
-                    <span style="font-size:10px; color:var(--text2)">TENSÃO MÉDIA</span>
-                    <span class="kpi-val" id="kpi5" style="color:var(--green)">0V</span>
-                </div>
-            </div>
-
-            <div class="decisions" id="decisionsGrid"></div>
-
-            <div class="card">
-                <div style="display:flex; justify-content:space-between; margin-bottom:15px;">
-                    <span style="font-weight:600">HISTÓRICO DE TENSÃO</span>
-                    <select id="chartPlacaSel" onchange="updateChart()" style="background:var(--surface2); color:var(--text); border:1px solid var(--border); font-size:11px;"></select>
-                </div>
-                <div style="height:250px;"><canvas id="batChart"></canvas></div>
-            </div>
-
-            <div class="card">
-                <span style="font-weight:600">DETALHAMENTO DE OCORRÊNCIAS</span>
-                <table>
-                    <thead>
-                        <tr>
-                            <th>PLACA</th>
-                            <th>DATA/HORA</th>
-                            <th>CÓDIGO DTC</th>
-                            <th>TENSÃO</th>
-                            <th>ROTEAMENTO</th>
-                        </tr>
-                    </thead>
-                    <tbody id="dtcTbody"></tbody>
-                </table>
-            </div>
+        <div class="kpi warning">
+          <div class="kpi-label">Investigar Bateria</div>
+          <div class="kpi-value" id="kpi2">0</div>
+          <div class="kpi-sub">monitorar tensão</div>
         </div>
+        <div class="kpi info">
+          <div class="kpi-label">Rot. Mecânica</div>
+          <div class="kpi-value" id="kpi3">0</div>
+          <div class="kpi-sub">sem correlação</div>
+        </div>
+        <div class="kpi">
+          <div class="kpi-label">Total Diagnósticos</div>
+          <div class="kpi-value" id="kpi4">0</div>
+          <div class="kpi-sub">últ. 15 dias</div>
+        </div>
+        <div class="kpi ok">
+          <div class="kpi-label">Tensão Média</div>
+          <div class="kpi-value" id="kpi5">0V</div>
+          <div class="kpi-sub">média frota</div>
+        </div>
+      </div>
+
+      <div class="section-header"><span class="section-title">Decisão de Roteamento de Oficina</span></div>
+      <div class="decisions" id="decisionsGrid"></div>
+
+      <div class="grid3">
+        <div class="card">
+          <div class="section-header">
+            <span class="section-title">Histórico de Tensão Hora a Hora</span>
+            <select id="chartPlacaSel" onchange="updateChart()" style="background:var(--surface2); color:var(--text); border:1px solid var(--border); font-size:11px; padding:3px;"></select>
+          </div>
+          <div class="chart-wrap"><canvas id="batChart"></canvas></div>
+        </div>
+        <div class="card">
+          <span class="section-title">Falhas por Hora do Dia</span>
+          <div class="heatmap-grid" id="heatmapGrid"></div>
+          <div class="hm-label"><span>00h</span><span>06h</span><span>12h</span><span>18h</span><span>23h</span></div>
+          <div id="hmInsight" style="font-size:11px; color:var(--text2); margin-top:15px;"></div>
+        </div>
+      </div>
+
+      <div class="card">
+        <span class="section-title">Análise Detalhada — Códigos DTC × Bateria</span>
+        <div class="tbl-wrap">
+          <table class="dtc">
+            <thead>
+              <tr><th>Placa</th><th>Data</th><th>Código</th><th>Tensão</th><th>Correlação</th><th>Ação Recomendada</th></tr>
+            </thead>
+            <tbody id="dtcTbody"></tbody>
+          </table>
+        </div>
+      </div>
+
+      <div class="insights-panel">
+        <span class="section-title">Insights Automáticos</span>
+        <div class="insight-list" id="insightList" style="margin-top:10px;"></div>
+      </div>
     </div>
+  </div>
+
+  <footer style="padding:20px; text-align:center; font-size:11px; color:var(--text3); border-top:1px solid var(--border);">
+    DIAGFLEET V2.0 — GESTÃO TÉCNICA DE FROTA ASB · DADOS DO METABASE
+  </footer>
 </div>
 
 <script>
-console.log("Script DIAGFLEET iniciado.");
-
+// ═══════════════════════════════════════════════════════════
+// ESTADO E CONHECIMENTO
+// ═══════════════════════════════════════════════════════════
 let STATE = {
-    config: { mode: 'apikey' },
-    raw: [],
-    batHistory: {},
-    processed: [],
-    batChart: null
+  config: { mode: 'apikey' }, // Vacina contra erro de mode
+  raw: [],
+  batHistory: {},
+  processed: [],
+  batChart: null,
+  avgFrota: 0
 };
 
-// FUNÇÃO PRINCIPAL DE CARREGAMENTO
-async function loadData() {
-    console.log("Iniciando loadData...");
-    const dot = document.getElementById('statusDot');
-    const txt = document.getElementById('statusText');
-    
-    dot.className = 'status-dot';
-    txt.textContent = 'Sincronizando...';
+const DTC_DB = {
+  'P0562': { desc:'Tensão Baixa', dept:'ELÉTRICA', sens:'DIRETO', volt:12.4 },
+  'P0625': { desc:'Falha Alternador', dept:'ELÉTRICA', sens:'DIRETO', volt:12.4 },
+  'U0100': { desc:'Sem Comum. ECM', dept:'ELÉTRICA', sens:'ALTO', volt:11.5 },
+  'P0300': { desc:'Falha Ignição', dept:'MECÂNICA', sens:'MÉDIO', volt:11.8 },
+  'C1210': { desc:'Sensor ABS', dept:'MECÂNICA', sens:'BAIXO', volt:10.5 }
+};
 
-    try {
-        const rows = await fetchMetabase();
-        console.log("Dados recebidos com sucesso:", rows.length, "linhas");
-
-        STATE.raw = rows;
-        processData(rows);
-        renderDashboard();
-
-        dot.className = 'status-dot live';
-        txt.textContent = 'Dados Atualizados';
-        document.getElementById('emptyState').style.display = 'none';
-        document.getElementById('dashContent').style.display = 'block';
-    } catch (err) {
-        console.error("Erro no loadData:", err);
-        dot.className = 'status-dot error';
-        txt.textContent = 'Erro na conexão';
-        alert("Erro ao carregar dados: " + err.message);
-    }
-}
-
-// BUSCA NO GOOGLE APPS SCRIPT
+// ═══════════════════════════════════════════════════════════
+// CONEXÃO COM A PONTE GOOGLE
+// ═══════════════════════════════════════════════════════════
 async function fetchMetabase() {
-    // CERTIFIQUE-SE QUE ESTA URL É A SUA URL DO GOOGLE SCRIPTS (A QUE TERMINA EM /exec)
-    const scriptUrl = "https://script.google.com/macros/s/AKfycbyqp4I3WwQEA0yBvPAhU2q_DDUEL6fIwm4Svc2KERzcAVUYZKD0o8oveKpGUhpbzDG7vw/exec"; 
+  // SEU LINK DO GOOGLE APPS SCRIPT:
+  const scriptUrl = "https://script.google.com/macros/s/AKfycbyqp4I3WwQEA0yBvPAhU2q_DDUEL6fIwm4Svc2KERzcAVUYZKD0o8oveKpGUhpbzDG7vw/exec"; 
 
-    const res = await fetch(scriptUrl);
-    if (!res.ok) throw new Error("Erro na rede.");
-    
-    const data = await res.json();
-    if (data.error) throw new Error(data.error);
+  const res = await fetch(scriptUrl);
+  if(!res.ok) throw new Error("Falha na ponte do Google.");
+  
+  const data = await res.json();
+  if(data.error) throw new Error(data.error);
 
-    if (Array.isArray(data)) return data;
-    if (data.data && data.data.rows) {
-        const cols = data.data.cols.map(c => c.display_name || c.name);
-        return data.data.rows.map(r => {
-            const o = {};
-            cols.forEach((c, i) => o[c] = r[i]);
-            return o;
-        });
-    }
-    return [];
+  if(Array.isArray(data)) return data;
+  if(data.data && data.data.rows) {
+    const cols = data.data.cols.map(c => c.display_name || c.name);
+    return data.data.rows.map(r => { const o={}; cols.forEach((c,i)=>o[c]=r[i]); return o; });
+  }
+  return data;
 }
 
+async function loadData() {
+  if (!STATE.config) STATE.config = { mode: 'apikey' };
+  
+  const dot = document.getElementById('statusDot');
+  const txt = document.getElementById('statusText');
+  dot.className = 'status-dot';
+  txt.textContent = 'Sincronizando...';
+
+  try {
+    const rows = await fetchMetabase();
+    STATE.raw = rows;
+    processData(rows);
+    renderDashboard();
+
+    dot.className = 'status-dot live';
+    txt.textContent = 'Dados Atualizados';
+    document.getElementById('emptyState').style.display = 'none';
+    document.getElementById('dashContent').style.display = 'block';
+    document.getElementById('lastUpdate').textContent = 'Sinc: ' + new Date().toLocaleTimeString();
+  } catch(err) {
+    dot.className = 'status-dot error';
+    txt.textContent = 'Erro Conexão';
+    console.error(err);
+  }
+}
+
+// ═══════════════════════════════════════════════════════════
+// PROCESSAMENTO DOS DADOS
+// ═══════════════════════════════════════════════════════════
 function processData(rows) {
-    STATE.batHistory = {};
-    const diagMap = {};
-    let totalV = 0, countV = 0;
+  STATE.batHistory = {};
+  const diagMap = {};
+  let sumV = 0, countV = 0;
 
-    rows.forEach(r => {
-        const placa = r['Placa'] || r['placa'];
-        const v = parseFloat(r['Tensão Bateria'] || r['tensao'] || 0);
-        const dt = r['Data/Hora Leitura (Para o Gráfico)'] || r['data_leitura'];
-        const code = r['Códigos encontrados'] || r['dtc'];
+  rows.forEach(r => {
+    const placa = r['Placa'];
+    const v = parseFloat(r['Tensão Bateria'] || 0);
+    const dt = r['Data/Hora Leitura (Para o Gráfico)'];
+    const code = r['Códigos encontrados'];
 
-        if (!placa) return;
+    if(!placa) return;
 
-        if (dt && !isNaN(v) && v > 0) {
-            if (!STATE.batHistory[placa]) STATE.batHistory[placa] = [];
-            STATE.batHistory[placa].push({ t: new Date(dt), y: v });
-            totalV += v; countV++;
-        }
+    if(dt && !isNaN(v) && v > 0) {
+      if(!STATE.batHistory[placa]) STATE.batHistory[placa] = [];
+      STATE.batHistory[placa].push({ t: new Date(dt), y: v });
+      sumV += v; countV++;
+    }
 
-        const diagDt = r['Diagnóstico finalizado em'] || r['data_diag'];
-        if (diagDt) {
-            const key = `${placa}_${diagDt}`;
-            if (!diagMap[key]) diagMap[key] = { placa, dt: diagDt, codes: [], v: v };
-            if (code && !diagMap[key].codes.includes(code)) diagMap[key].codes.push(code);
-        }
-    });
+    const diagDt = r['Diagnóstico finalizado em'];
+    if(diagDt) {
+      const key = `${placa}_${diagDt}`;
+      if(!diagMap[key]) diagMap[key] = { placa, dt: diagDt, codes: [], v: v };
+      if(code && !diagMap[key].codes.includes(code)) diagMap[key].codes.push(code);
+    }
+  });
 
-    STATE.avgFrota = countV > 0 ? (totalV / countV).toFixed(2) : 0;
+  STATE.avgFrota = countV > 0 ? (sumV / countV).toFixed(2) : "0.00";
 
-    STATE.processed = Object.values(diagMap).map(d => {
-        let route = 'MECÂNICA';
-        if (d.v > 0 && d.v < 12.0) route = 'ELÉTRICA_URGENTE';
-        else if (d.v < 12.4) route = 'ELÉTRICA_INVESTIGAR';
-        return { ...d, route };
-    }).sort((a, b) => new Date(b.dt) - new Date(a.dt));
+  STATE.processed = Object.values(diagMap).map(d => {
+    let route = 'MECÂNICA';
+    if(d.v > 0 && d.v < 12.0) route = 'ELÉTRICA_URGENTE';
+    else if(d.v < 12.4) route = 'ELÉTRICA_INVESTIGAR';
+    return { ...d, route };
+  }).sort((a,b) => new Date(b.dt) - new Date(a.dt));
 }
 
+// ═══════════════════════════════════════════════════════════
+// RENDERIZAÇÃO DA INTERFACE
+// ═══════════════════════════════════════════════════════════
 function renderDashboard() {
-    const p = STATE.processed;
-    document.getElementById('kpi1').textContent = p.filter(x => x.route === 'ELÉTRICA_URGENTE').length;
-    document.getElementById('kpi2').textContent = p.filter(x => x.route === 'ELÉTRICA_INVESTIGAR').length;
-    document.getElementById('kpi3').textContent = p.filter(x => x.route === 'MECÂNICA').length;
-    document.getElementById('kpi4').textContent = p.length;
-    document.getElementById('kpi5').textContent = STATE.avgFrota + "V";
+  const p = STATE.processed;
+  document.getElementById('kpi1').textContent = p.filter(x => x.route === 'ELÉTRICA_URGENTE').length;
+  document.getElementById('kpi2').textContent = p.filter(x => x.route === 'ELÉTRICA_INVESTIGAR').length;
+  document.getElementById('kpi3').textContent = p.filter(x => x.route === 'MECÂNICA').length;
+  document.getElementById('kpi4').textContent = p.length;
+  document.getElementById('kpi5').textContent = STATE.avgFrota + "V";
 
-    const grid = document.getElementById('decisionsGrid');
-    grid.innerHTML = p.slice(0, 12).map(d => {
-        const color = d.v < 12 ? 'var(--red)' : d.v < 12.4 ? 'var(--orange)' : 'var(--green)';
-        const routeClass = d.route.toLowerCase().replace(/_/g, '-');
-        const pct = Math.min(100, Math.max(0, ((d.v - 10.5) / 4) * 100));
+  // Decision Cards
+  const grid = document.getElementById('decisionsGrid');
+  grid.innerHTML = p.slice(0, 12).map(d => {
+    const color = d.v < 12 ? 'var(--red)' : d.v < 12.4 ? 'var(--amber)' : 'var(--green)';
+    const routeCls = d.route.toLowerCase().replace(/_/g, '-');
+    const pct = Math.min(100, Math.max(0, ((d.v - 10.5) / 4) * 100));
 
-        return `
-            <div class="decision-card route-${routeClass}">
-                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
-                    <span style="font-weight:600; font-family:monospace; font-size:15px;">${d.placa}</span>
-                    <span class="tag ${d.route.includes('ELÉTRICA') ? 'tag-crit' : ''}" style="font-size:9px;">${d.route.replace(/_/g, ' ')}</span>
-                </div>
-                <div style="font-size:20px; font-weight:600; color:${color}">${d.v.toFixed(2)}V</div>
-                <div class="bat-bar"><div class="bat-fill" style="width:${pct}%; background:${color}"></div></div>
-                <div style="margin-top:10px;">
-                    ${d.codes.map(c => `<span style="background:var(--surface2); padding:2px 5px; border-radius:3px; font-size:10px; margin-right:4px;">${c}</span>`).join('')}
-                </div>
-            </div>
-        `;
-    }).join('');
+    return `
+      <div class="decision-card route-${routeCls}">
+        <div class="dc-header">
+          <span class="dc-plate">${d.placa}</span>
+          <span class="routing-badge ${routeCls.split('-')[0]}">${d.route.split('_')[0]}</span>
+        </div>
+        <div class="dc-body">
+          <div class="dc-bat-row">
+            <span class="dc-bat-val" style="color:${color}">${d.v.toFixed(2)}V</span>
+            <div class="bat-bar"><div class="bat-fill" style="width:${pct}%; background:${color}"></div></div>
+          </div>
+          <div style="margin-bottom:10px;">
+            ${d.codes.map(c => `<span class="fault-tag">${c}</span>`).join('')}
+          </div>
+          <div class="dc-insight">${d.route === 'MECÂNICA' ? 'Fluxo mecânico padrão' : 'Investigar bateria/alternador'}</div>
+        </div>
+      </div>
+    `;
+  }).join('');
 
-    const tbody = document.getElementById('dtcTbody');
-    tbody.innerHTML = p.slice(0, 20).map(d => `
-        <tr>
-            <td style="font-family:monospace; font-weight:600;">${d.placa}</td>
-            <td>${new Date(d.dt).toLocaleString('pt-BR')}</td>
-            <td>${d.codes.join(', ')}</td>
-            <td><span class="tag ${d.v < 12.4 ? 'tag-warn' : ''}">${d.v.toFixed(2)}V</span></td>
-            <td>${d.route.replace(/_/g, ' ')}</td>
-        </tr>
-    `).join('');
+  // Tabela
+  const tbody = document.getElementById('dtcTbody');
+  tbody.innerHTML = p.slice(0, 15).map(d => `
+    <tr>
+      <td class="mono"><strong>${d.placa}</strong></td>
+      <td>${new Date(d.dt).toLocaleDateString()}</td>
+      <td>${d.codes.join(', ')}</td>
+      <td><span class="tag ${d.v < 12.4 ? 'tag-warn' : 'tag-ok'}">${d.v.toFixed(2)}V</span></td>
+      <td>${d.v < 12.4 ? 'ALTA' : 'BAIXA'}</td>
+      <td><span class="tag ${d.route.includes('ELÉTRICA') ? 'tag-crit' : 'tag-info'}">${d.route.split('_')[0]}</span></td>
+    </tr>
+  `).join('');
 
-    const sel = document.getElementById('chartPlacaSel');
-    const placas = Object.keys(STATE.batHistory);
-    sel.innerHTML = placas.map(pl => `<option value="${pl}">${pl}</option>`).join('');
-    if (placas.length > 0) renderChart(placas[0]);
+  // Heatmap e Insights
+  renderHeatmap();
+  renderInsights();
+
+  // Gráfico
+  const sel = document.getElementById('chartPlacaSel');
+  const placas = Object.keys(STATE.batHistory);
+  sel.innerHTML = placas.map(pl => `<option value="${pl}">${pl}</option>`).join('');
+  if(placas.length > 0) renderChart(placas[0]);
 }
 
-function updateChart() {
-    renderChart(document.getElementById('chartPlacaSel').value);
+function renderHeatmap() {
+  const grid = document.getElementById('heatmapGrid');
+  const counts = new Array(24).fill(0);
+  STATE.processed.forEach(d => { counts[new Date(d.dt).getHours()]++; });
+  const max = Math.max(...counts, 1);
+  grid.innerHTML = counts.map((c, i) => {
+    const color = c === 0 ? 'var(--surface2)' : `rgba(240,165,0,${0.2 + 0.8 * (c/max)})`;
+    return `<div class="hm-cell" style="background:${color}" title="${i}h: ${c} falhas"></div>`;
+  }).join('');
+}
+
+function renderInsights() {
+  const list = document.getElementById('insightList');
+  const urgent = STATE.processed.filter(x => x.route === 'ELÉTRICA_URGENTE').length;
+  let html = '';
+  if(urgent > 0) html += `<div class="insight-item critical">⚠️ <strong>Atenção:</strong> ${urgent} veículos requerem elétrica urgente para evitar bus-off.</div>`;
+  if(STATE.avgFrota < 12.2) html += `<div class="insight-item warning">🔋 <strong>Média Frota:</strong> Tensão geral baixa (${STATE.avgFrota}V). Risco de fadiga de baterias.</div>`;
+  list.innerHTML = html || '<div class="insight-item">✅ Frota operando dentro dos parâmetros de tensão.</div>';
 }
 
 function renderChart(placa) {
-    const ctx = document.getElementById('batChart').getContext('2d');
-    const data = STATE.batHistory[placa] || [];
-    if (STATE.batChart) STATE.batChart.destroy();
-    
-    STATE.batChart = new Chart(ctx, {
-        type: 'line',
-        data: {
-            datasets: [{
-                label: 'Tensão',
-                data: data.map(pt => ({ x: pt.t, y: pt.y })),
-                borderColor: '#58A6FF',
-                borderWidth: 2,
-                pointRadius: 0,
-                fill: true,
-                backgroundColor: 'rgba(88, 166, 255, 0.05)',
-                tension: 0.3
-            }]
-        },
-        options: {
-            responsive: true,
-            maintainAspectRatio: false,
-            plugins: { legend: { display: false } },
-            scales: {
-                x: { type: 'time', time: { unit: 'day' }, grid: { display: false }, ticks: { color: '#8B949E' } },
-                y: { min: 10, max: 15, grid: { color: '#30363D' }, ticks: { color: '#8B949E' } }
-            }
-        }
-    });
+  const ctx = document.getElementById('batChart').getContext('2d');
+  const data = (STATE.batHistory[placa] || []).sort((a,b) => a.t - b.t);
+  if(STATE.batChart) STATE.batChart.destroy();
+  STATE.batChart = new Chart(ctx, {
+    type: 'line',
+    data: {
+      datasets: [{
+        label: 'Volts',
+        data: data.map(pt => ({ x: pt.t, y: pt.y })),
+        borderColor: '#58A6FF',
+        borderWidth: 2,
+        pointRadius: 0,
+        fill: true,
+        backgroundColor: 'rgba(88, 166, 255, 0.05)',
+        tension: 0.4
+      }]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: { legend: { display: false } },
+      scales: {
+        x: { type: 'time', time: { unit: 'day' }, grid: { display: false }, ticks: { color: '#8B949E' } },
+        y: { min: 10, max: 15, grid: { color: '#30363D' }, ticks: { color: '#8B949E' } }
+      }
+    }
+  });
 }
 
-// AUTO-INICIALIZAÇÃO
-window.onload = function() {
-    console.log("Página carregada. Chamando loadData...");
-    loadData();
-};
-</script>
+function updateChart() { renderChart(document.getElementById('chartPlacaSel').value); }
 
+// INICIALIZAÇÃO
+window.onload = loadData;
+</script>
 </body>
 </html>
