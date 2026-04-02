@@ -1,0 +1,341 @@
+<!DOCTYPE html> 
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Dossiê Técnico — Operações ASB</title>
+  <link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@500;600;700&family=Roboto+Mono:wght@400;600&display=swap" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  
+  <style>
+    :root {
+      --bg: #090a0f;
+      --surface: #12141d;
+      --surface-light: #1e2130;
+      --text: #e2e8f0;
+      --neon-green: #39ff14;
+      --neon-blue: #00f3ff;
+      --neon-red: #ff073a;
+      --border-dark: rgba(255,255,255,0.08);
+      --timeline-line: #333;
+    }
+    
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    
+    body {
+      background: var(--bg); color: var(--text);
+      font-family: 'Rajdhani', sans-serif; min-height: 100vh;
+      display: flex; flex-direction: column;
+    }
+
+    /* ── HEADER & FILTROS ── */
+    header {
+      background: var(--surface); border-bottom: 1px solid var(--border-dark);
+      padding: 15px 30px; display: flex; justify-content: space-between;
+      align-items: center; flex-wrap: wrap; gap: 15px; position: sticky; top: 0; z-index: 100;
+    }
+    .brand { font-size: 24px; font-weight: 700; letter-spacing: 2px; text-transform: uppercase; }
+    .brand span { color: var(--neon-blue); text-shadow: 0 0 10px rgba(0,243,255,0.4); }
+    
+    .filters { display: flex; gap: 15px; align-items: center; flex-wrap: wrap; }
+    .input-group { display: flex; flex-direction: column; gap: 4px; }
+    .input-group label { font-size: 11px; color: #888; text-transform: uppercase; letter-spacing: 1px; }
+    
+    input[type="text"], input[type="date"] {
+      background: rgba(0,0,0,0.5); border: 1px solid var(--border-dark);
+      color: white; padding: 8px 12px; border-radius: 4px;
+      font-family: 'Roboto Mono'; font-size: 14px; outline: none;
+    }
+    input[type="text"]:focus, input[type="date"]:focus { border-color: var(--neon-blue); }
+    
+    .btn {
+      background: transparent; color: var(--neon-blue); border: 1px solid var(--neon-blue);
+      padding: 8px 20px; border-radius: 4px; cursor: pointer; height: 38px; margin-top: 15px;
+      font-family: 'Rajdhani'; font-weight: 600; font-size: 14px; transition: all 0.2s;
+    }
+    .btn:hover { background: rgba(0,243,255,0.1); box-shadow: 0 0 15px rgba(0,243,255,0.3); }
+
+    /* ── MAIN GRID DE ANÁLISE ── */
+    main { padding: 30px; flex: 1; overflow-y: auto; }
+    .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(500px, 1fr)); gap: 30px; }
+
+    /* ── CARD TÉCNICO (DOSSIÊ) ── */
+    .tech-card {
+      background: var(--surface); border: 1px solid var(--border-dark);
+      border-radius: 8px; padding: 25px; display: flex; flex-direction: column; gap: 20px;
+      box-shadow: 0 4px 15px rgba(0,0,0,0.3); position: relative;
+    }
+    
+    /* Etiqueta de Reincidência */
+    .badge-alert {
+      position: absolute; top: 15px; right: 20px;
+      background: rgba(255, 7, 58, 0.15); border: 1px solid var(--neon-red);
+      color: var(--neon-red); padding: 4px 12px; border-radius: 20px;
+      font-size: 12px; font-weight: 700; letter-spacing: 1px;
+      box-shadow: 0 0 10px rgba(255, 7, 58, 0.2);
+    }
+
+    .card-header { border-bottom: 1px solid var(--border-dark); padding-bottom: 10px; }
+    .placa { font-family: 'Roboto Mono'; font-size: 28px; font-weight: 600; color: white; letter-spacing: 2px; }
+    .resumo-placa { font-size: 13px; color: #888; text-transform: uppercase; }
+
+    /* ── TIMELINE DE DIAGNÓSTICOS ── */
+    .timeline {
+      display: flex; flex-direction: column; gap: 15px;
+      border-left: 2px solid var(--timeline-line);
+      margin-left: 10px; padding-left: 20px;
+      max-height: 250px; overflow-y: auto; padding-right: 10px;
+    }
+    
+    /* Estilizando a barra de rolagem da timeline */
+    .timeline::-webkit-scrollbar { width: 6px; }
+    .timeline::-webkit-scrollbar-thumb { background: #333; border-radius: 4px; }
+
+    .timeline-item { position: relative; background: var(--surface-light); padding: 12px; border-radius: 6px; }
+    
+    /* Bolinha da Timeline */
+    .timeline-item::before {
+      content: ''; position: absolute; left: -27px; top: 15px;
+      width: 12px; height: 12px; border-radius: 50%;
+      background: var(--surface); border: 2px solid var(--neon-blue);
+    }
+    /* Destaque para o último (mais recente) diagnóstico */
+    .timeline-item.recent::before { background: var(--neon-blue); box-shadow: 0 0 8px var(--neon-blue); }
+    .timeline-item.recent { border-left: 3px solid var(--neon-blue); }
+
+    .diag-date { font-family: 'Roboto Mono'; font-size: 12px; color: var(--neon-blue); margin-bottom: 5px; }
+    .diag-codes { font-family: 'Roboto Mono'; color: var(--neon-red); font-size: 14px; font-weight: 600; margin-bottom: 5px; }
+    .diag-notes { font-size: 13px; color: #bbb; line-height: 1.4; }
+
+    /* ── GRÁFICO ── */
+    .chart-section { border-top: 1px solid var(--border-dark); padding-top: 15px; }
+    .chart-title { font-size: 13px; color: #888; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 10px; }
+    .chart-container { width: 100%; height: 160px; position: relative; }
+    
+    .loader { text-align: center; color: var(--neon-blue); padding: 50px; font-family: 'Roboto Mono'; letter-spacing: 2px; display: none; }
+  </style>
+</head>
+<body>
+
+  <header>
+    <div class="brand">Dossiê <span>Técnico</span></div>
+    
+    <div class="filters">
+      <div class="input-group">
+        <label>Placa do Veículo</label>
+        <input type="text" id="filtroPlaca" placeholder="EX: ABC1D23" style="text-transform: uppercase;">
+      </div>
+      <div class="input-group">
+        <label>Data (A partir de)</label>
+        <input type="date" id="dataInicio">
+      </div>
+      <button class="btn" onclick="aplicarFiltros()">Filtrar Dossiê</button>
+    </div>
+  </header>
+
+  <main>
+    <div id="loader" class="loader">COMPILANDO HISTÓRICOS DE MANUTENÇÃO...</div>
+    <div class="grid" id="gridCards"></div>
+  </main>
+
+  <script>
+    // Cole aqui a URL gerada pelo Google Apps Script
+    const URL_API = "COLE_AQUI"; 
+    
+    let dadosBrutos = [];
+    let graficosAtivos = [];
+
+    // Lógica inteligente para agrupar múltiplos diagnósticos e o gráfico da bateria
+    function agruparDados(dados) {
+      const carros = {};
+      
+      dados.forEach(linha => {
+        const placa = linha["Placa"];
+        
+        if (!carros[placa]) {
+          carros[placa] = {
+            placa: placa,
+            diagnosticos: [],
+            bateria: []
+          };
+        }
+        
+        // 1. Coletar Histórico de Bateria (Garantir que não duplique horas)
+        if(linha["Data/Hora Leitura (Para o Gráfico)"] && linha["Tensão Bateria"]) {
+           const horaStr = linha["Data/Hora Leitura (Para o Gráfico)"];
+           const jaExiste = carros[placa].bateria.some(b => b.hora === horaStr);
+           
+           if(!jaExiste) {
+               carros[placa].bateria.push({
+                 hora: horaStr,
+                 tensao: parseFloat(linha["Tensão Bateria"])
+               });
+           }
+        }
+
+        // 2. Coletar Histórico de Diagnósticos (Garantir que não duplique)
+        if(linha["Diagnóstico finalizado em"]) {
+            const diagStr = linha["Diagnóstico finalizado em"];
+            const jaExisteDiag = carros[placa].diagnosticos.some(d => d.data === diagStr);
+            
+            if(!jaExisteDiag) {
+                carros[placa].diagnosticos.push({
+                    data: diagStr,
+                    codigos: linha["Códigos encontrados"],
+                    notas: linha["Informações adicionais"]
+                });
+            }
+        }
+      });
+
+      return Object.values(carros);
+    }
+
+    function renderizarCards(carrosAgrupados) {
+      const container = document.getElementById('gridCards');
+      container.innerHTML = '';
+      
+      graficosAtivos.forEach(chart => chart.destroy());
+      graficosAtivos = [];
+
+      if(carrosAgrupados.length === 0) {
+        container.innerHTML = '<div style="grid-column: 1/-1; text-align:center; color:#666; margin-top:50px;">Nenhum registro encontrado.</div>';
+        return;
+      }
+
+      carrosAgrupados.forEach((carro, index) => {
+        const card = document.createElement('div');
+        card.className = 'tech-card';
+        
+        // Ordena os diagnósticos do mais novo para o mais antigo
+        carro.diagnosticos.sort((a, b) => new Date(b.data) - new Date(a.data));
+        
+        const totalDiags = carro.diagnosticos.length;
+        
+        // Verifica se é reincidente
+        const alertaReincidencia = totalDiags > 1 
+            ? `<div class="badge-alert">⚠️ REINCIDENTE (${totalDiags}x)</div>` 
+            : '';
+
+        // Monta a linha do tempo em HTML
+        let timelineHTML = '';
+        carro.diagnosticos.forEach((diag, i) => {
+            const isRecent = i === 0 ? 'recent' : '';
+            const d = new Date(diag.data);
+            const dataFormatada = d.toLocaleDateString('pt-BR') + ' às ' + d.toLocaleTimeString('pt-BR', {hour: '2-digit', minute:'2-digit'});
+            
+            timelineHTML += `
+              <div class="timeline-item ${isRecent}">
+                 <div class="diag-date">${dataFormatada} ${i===0 ? '(Mais Recente)' : ''}</div>
+                 <div class="diag-codes">⚙️ Falhas: ${diag.codigos || 'Nenhum código gerado'}</div>
+                 <div class="diag-notes">📝 ${diag.notas || 'Sem observações do técnico.'}</div>
+              </div>
+            `;
+        });
+
+        if (totalDiags === 0) {
+            timelineHTML = `<div style="color:#666; font-style:italic; padding:10px;">Nenhum diagnóstico registrado.</div>`;
+        }
+
+        // Estrutura do Card
+        card.innerHTML = `
+          ${alertaReincidencia}
+          <div class="card-header">
+            <div class="placa">${carro.placa}</div>
+            <div class="resumo-placa">Histórico de Passagens: ${totalDiags} registro(s)</div>
+          </div>
+          
+          <div class="timeline">
+             ${timelineHTML}
+          </div>
+
+          <div class="chart-section">
+            <div class="chart-title">📉 Tensão da Bateria (15 Dias)</div>
+            <div class="chart-container">
+              <canvas id="chart_${index}"></canvas>
+            </div>
+          </div>
+        `;
+        
+        container.appendChild(card);
+
+        // --- Renderizar o Gráfico ---
+        const historico = carro.bateria.sort((a, b) => new Date(a.hora) - new Date(b.hora));
+        
+        if (historico.length > 0) {
+            const labels = historico.map(h => {
+              const d = new Date(h.hora);
+              return `${d.getDate()}/${d.getMonth()+1} ${d.getHours()}:00`;
+            });
+            
+            const tensoes = historico.map(h => h.tensao);
+            
+            const ctx = document.getElementById(`chart_${index}`).getContext('2d');
+            const novoGrafico = new Chart(ctx, {
+              type: 'line',
+              data: {
+                labels: labels,
+                datasets: [{
+                  data: tensoes,
+                  borderColor: '#00f3ff',
+                  backgroundColor: 'rgba(0, 243, 255, 0.05)',
+                  borderWidth: 2,
+                  pointRadius: 0,
+                  pointHoverRadius: 4,
+                  fill: true,
+                  tension: 0.4
+                }]
+              },
+              options: {
+                responsive: true, maintainAspectRatio: false,
+                plugins: { legend: { display: false }, tooltip: { mode: 'index', intersect: false } },
+                scales: {
+                  x: { ticks: { color: '#666', font: {size: 9}, maxTicksLimit: 5 }, grid: { display: false } },
+                  y: { 
+                    ticks: { color: '#888', font: {family: 'Roboto Mono'} }, 
+                    grid: { color: 'rgba(255,255,255,0.05)' },
+                    suggestedMin: 11 // Tenta focar nas quedas de tensão abaixo de 11V
+                  }
+                }
+              }
+            });
+            graficosAtivos.push(novoGrafico);
+        } else {
+            document.getElementById(`chart_${index}`).parentElement.innerHTML = '<div style="color:#666; text-align:center; padding-top:20px;">Sem dados de telemetria.</div>';
+        }
+      });
+    }
+
+    // JSONP Loader (Adicione a função carregarDados() igual ao painel anterior para produção)
+    
+    function aplicarFiltros() {
+      const placa = document.getElementById('filtroPlaca').value.toUpperCase().trim();
+      const dtInicio = document.getElementById('dataInicio').value;
+      
+      let filtrados = dadosBrutos;
+
+      if(placa) {
+        filtrados = filtrados.filter(d => d["Placa"].includes(placa));
+      }
+      
+      if(dtInicio) {
+        filtrados = filtrados.filter(d => new Date(d["Diagnóstico finalizado em"]) >= new Date(dtInicio));
+      }
+
+      renderizarCards(agruparDados(filtrados));
+    }
+
+    // Inicialização - DADOS MOCKADOS PARA TESTE
+    window.onload = () => {
+      // Exemplo de como o sistema lida com dados repetidos vindos do SQL
+      dadosBrutos = [
+        {"Placa": "ASB9A88", "Diagnóstico finalizado em": "2026-04-02T10:00:00", "Códigos encontrados": "P0562", "Informações adicionais": "Bateria não segura carga. Trocada hoje.", "Data/Hora Leitura (Para o Gráfico)": "2026-04-02T08:00:00", "Tensão Bateria": "12.5"},
+        {"Placa": "ASB9A88", "Diagnóstico finalizado em": "2026-04-02T10:00:00", "Códigos encontrados": "P0562", "Informações adicionais": "Bateria não segura carga. Trocada hoje.", "Data/Hora Leitura (Para o Gráfico)": "2026-04-01T14:00:00", "Tensão Bateria": "9.2"},
+        // O MESMO CARRO num diagnóstico da SEMANA PASSADA:
+        {"Placa": "ASB9A88", "Diagnóstico finalizado em": "2026-03-25T15:30:00", "Códigos encontrados": "U0100", "Informações adicionais": "Cliente relatou falha na partida. Limpeza dos bornes.", "Data/Hora Leitura (Para o Gráfico)": "2026-03-25T10:00:00", "Tensão Bateria": "11.1"}
+      ];
+      aplicarFiltros();
+    };
+  </script>
+</body>
+</html>
