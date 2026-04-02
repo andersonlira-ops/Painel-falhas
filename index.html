@@ -1,341 +1,1151 @@
-<!DOCTYPE html> 
+<!DOCTYPE html>
 <html lang="pt-BR">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Dossiê Técnico — Operações ASB</title>
-  <link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@500;600;700&family=Roboto+Mono:wght@400;600&display=swap" rel="stylesheet">
-  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-  
-  <style>
-    :root {
-      --bg: #090a0f;
-      --surface: #12141d;
-      --surface-light: #1e2130;
-      --text: #e2e8f0;
-      --neon-green: #39ff14;
-      --neon-blue: #00f3ff;
-      --neon-red: #ff073a;
-      --border-dark: rgba(255,255,255,0.08);
-      --timeline-line: #333;
-    }
-    
-    * { box-sizing: border-box; margin: 0; padding: 0; }
-    
-    body {
-      background: var(--bg); color: var(--text);
-      font-family: 'Rajdhani', sans-serif; min-height: 100vh;
-      display: flex; flex-direction: column;
-    }
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Central de Diagnóstico — Bateria & Falhas</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<style>
+:root {
+  --bg:       #0D1117;
+  --surface:  #161B22;
+  --surface2: #1C2128;
+  --border:   #30363D;
+  --border2:  #484F58;
+  --text:     #E6EDF3;
+  --text2:    #8B949E;
+  --text3:    #484F58;
+  --amber:    #F0A500;
+  --amber-bg: rgba(240,165,0,.1);
+  --red:      #F85149;
+  --red-bg:   rgba(248,81,73,.1);
+  --green:    #3FB950;
+  --green-bg: rgba(63,185,80,.1);
+  --blue:     #58A6FF;
+  --blue-bg:  rgba(88,166,255,.08);
+  --orange:   #E3894B;
+  --orange-bg:rgba(227,137,75,.1);
+  --radius:   6px;
+  --radius-lg:10px;
+}
+* { box-sizing:border-box; margin:0; padding:0; }
+html { background:var(--bg); color:var(--text); font-family:'IBM Plex Sans',sans-serif; font-size:14px; line-height:1.6; }
+body { min-height:100vh; }
+a { color:var(--blue); text-decoration:none; }
+code, .mono { font-family:'IBM Plex Mono',monospace; }
 
-    /* ── HEADER & FILTROS ── */
-    header {
-      background: var(--surface); border-bottom: 1px solid var(--border-dark);
-      padding: 15px 30px; display: flex; justify-content: space-between;
-      align-items: center; flex-wrap: wrap; gap: 15px; position: sticky; top: 0; z-index: 100;
-    }
-    .brand { font-size: 24px; font-weight: 700; letter-spacing: 2px; text-transform: uppercase; }
-    .brand span { color: var(--neon-blue); text-shadow: 0 0 10px rgba(0,243,255,0.4); }
-    
-    .filters { display: flex; gap: 15px; align-items: center; flex-wrap: wrap; }
-    .input-group { display: flex; flex-direction: column; gap: 4px; }
-    .input-group label { font-size: 11px; color: #888; text-transform: uppercase; letter-spacing: 1px; }
-    
-    input[type="text"], input[type="date"] {
-      background: rgba(0,0,0,0.5); border: 1px solid var(--border-dark);
-      color: white; padding: 8px 12px; border-radius: 4px;
-      font-family: 'Roboto Mono'; font-size: 14px; outline: none;
-    }
-    input[type="text"]:focus, input[type="date"]:focus { border-color: var(--neon-blue); }
-    
-    .btn {
-      background: transparent; color: var(--neon-blue); border: 1px solid var(--neon-blue);
-      padding: 8px 20px; border-radius: 4px; cursor: pointer; height: 38px; margin-top: 15px;
-      font-family: 'Rajdhani'; font-weight: 600; font-size: 14px; transition: all 0.2s;
-    }
-    .btn:hover { background: rgba(0,243,255,0.1); box-shadow: 0 0 15px rgba(0,243,255,0.3); }
+/* ── Scrollbar ── */
+::-webkit-scrollbar { width:6px; height:6px; }
+::-webkit-scrollbar-track { background:var(--surface); }
+::-webkit-scrollbar-thumb { background:var(--border2); border-radius:3px; }
 
-    /* ── MAIN GRID DE ANÁLISE ── */
-    main { padding: 30px; flex: 1; overflow-y: auto; }
-    .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(500px, 1fr)); gap: 30px; }
+/* ── Layout ── */
+.app { display:flex; flex-direction:column; min-height:100vh; }
+.header { background:var(--surface); border-bottom:1px solid var(--border); padding:0 24px; height:56px; display:flex; align-items:center; justify-content:space-between; position:sticky; top:0; z-index:100; }
+.header-left { display:flex; align-items:center; gap:16px; }
+.logo { display:flex; align-items:center; gap:10px; }
+.logo-icon { width:28px; height:28px; background:var(--amber); border-radius:6px; display:flex; align-items:center; justify-content:center; }
+.logo-icon svg { width:16px; height:16px; }
+.logo-name { font-family:'IBM Plex Mono',monospace; font-weight:600; font-size:13px; letter-spacing:.04em; color:var(--text); }
+.logo-name span { color:var(--amber); }
+.header-status { display:flex; align-items:center; gap:6px; font-size:11px; color:var(--text2); }
+.status-dot { width:6px; height:6px; border-radius:50%; background:var(--text3); }
+.status-dot.live { background:var(--green); animation:pulse 2s infinite; }
+.status-dot.error { background:var(--red); }
+@keyframes pulse { 0%,100%{opacity:1;} 50%{opacity:.4;} }
+.header-right { display:flex; align-items:center; gap:8px; }
+.btn { display:inline-flex; align-items:center; gap:6px; padding:6px 12px; border-radius:var(--radius); border:1px solid var(--border); background:transparent; color:var(--text2); font-size:12px; font-family:'IBM Plex Sans',sans-serif; cursor:pointer; transition:all .15s; }
+.btn:hover { border-color:var(--border2); color:var(--text); background:var(--surface2); }
+.btn.primary { background:var(--amber); color:#000; border-color:var(--amber); font-weight:500; }
+.btn.primary:hover { background:#d49400; border-color:#d49400; }
+.btn.danger { background:var(--red-bg); color:var(--red); border-color:rgba(248,81,73,.3); }
+.btn svg { width:13px; height:13px; flex-shrink:0; }
+.last-update { font-size:11px; color:var(--text3); font-family:'IBM Plex Mono',monospace; }
 
-    /* ── CARD TÉCNICO (DOSSIÊ) ── */
-    .tech-card {
-      background: var(--surface); border: 1px solid var(--border-dark);
-      border-radius: 8px; padding: 25px; display: flex; flex-direction: column; gap: 20px;
-      box-shadow: 0 4px 15px rgba(0,0,0,0.3); position: relative;
-    }
-    
-    /* Etiqueta de Reincidência */
-    .badge-alert {
-      position: absolute; top: 15px; right: 20px;
-      background: rgba(255, 7, 58, 0.15); border: 1px solid var(--neon-red);
-      color: var(--neon-red); padding: 4px 12px; border-radius: 20px;
-      font-size: 12px; font-weight: 700; letter-spacing: 1px;
-      box-shadow: 0 0 10px rgba(255, 7, 58, 0.2);
-    }
+.main { flex:1; padding:20px 24px; max-width:1600px; width:100%; margin:0 auto; }
 
-    .card-header { border-bottom: 1px solid var(--border-dark); padding-bottom: 10px; }
-    .placa { font-family: 'Roboto Mono'; font-size: 28px; font-weight: 600; color: white; letter-spacing: 2px; }
-    .resumo-placa { font-size: 13px; color: #888; text-transform: uppercase; }
+/* ── Alert banner ── */
+.alert-banner { display:none; background:var(--red-bg); border:1px solid rgba(248,81,73,.3); border-radius:var(--radius-lg); padding:12px 16px; margin-bottom:16px; font-size:13px; color:var(--red); display:flex; align-items:center; gap:10px; }
+.alert-banner.warn { background:var(--amber-bg); border-color:rgba(240,165,0,.3); color:var(--amber); }
+.alert-banner.hidden { display:none !important; }
 
-    /* ── TIMELINE DE DIAGNÓSTICOS ── */
-    .timeline {
-      display: flex; flex-direction: column; gap: 15px;
-      border-left: 2px solid var(--timeline-line);
-      margin-left: 10px; padding-left: 20px;
-      max-height: 250px; overflow-y: auto; padding-right: 10px;
-    }
-    
-    /* Estilizando a barra de rolagem da timeline */
-    .timeline::-webkit-scrollbar { width: 6px; }
-    .timeline::-webkit-scrollbar-thumb { background: #333; border-radius: 4px; }
+/* ── KPIs ── */
+.kpis { display:grid; grid-template-columns:repeat(5,1fr); gap:12px; margin-bottom:20px; }
+.kpi { background:var(--surface); border:1px solid var(--border); border-radius:var(--radius-lg); padding:14px 16px; }
+.kpi-label { font-size:10px; font-weight:500; text-transform:uppercase; letter-spacing:.08em; color:var(--text2); margin-bottom:6px; }
+.kpi-value { font-family:'IBM Plex Mono',monospace; font-size:26px; font-weight:600; color:var(--text); line-height:1; }
+.kpi-sub { font-size:11px; color:var(--text2); margin-top:4px; }
+.kpi.critical .kpi-value { color:var(--red); }
+.kpi.warning .kpi-value { color:var(--amber); }
+.kpi.ok .kpi-value { color:var(--green); }
+.kpi.info .kpi-value { color:var(--blue); }
 
-    .timeline-item { position: relative; background: var(--surface-light); padding: 12px; border-radius: 6px; }
-    
-    /* Bolinha da Timeline */
-    .timeline-item::before {
-      content: ''; position: absolute; left: -27px; top: 15px;
-      width: 12px; height: 12px; border-radius: 50%;
-      background: var(--surface); border: 2px solid var(--neon-blue);
-    }
-    /* Destaque para o último (mais recente) diagnóstico */
-    .timeline-item.recent::before { background: var(--neon-blue); box-shadow: 0 0 8px var(--neon-blue); }
-    .timeline-item.recent { border-left: 3px solid var(--neon-blue); }
+/* ── Section titles ── */
+.section-header { display:flex; align-items:center; justify-content:space-between; margin-bottom:12px; }
+.section-title { font-size:11px; font-weight:500; text-transform:uppercase; letter-spacing:.08em; color:var(--text2); display:flex; align-items:center; gap:8px; }
+.section-title::before { content:''; width:3px; height:12px; background:var(--amber); border-radius:2px; display:inline-block; }
 
-    .diag-date { font-family: 'Roboto Mono'; font-size: 12px; color: var(--neon-blue); margin-bottom: 5px; }
-    .diag-codes { font-family: 'Roboto Mono'; color: var(--neon-red); font-size: 14px; font-weight: 600; margin-bottom: 5px; }
-    .diag-notes { font-size: 13px; color: #bbb; line-height: 1.4; }
+/* ── Decision cards ── */
+.decisions { display:grid; grid-template-columns:repeat(auto-fill,minmax(340px,1fr)); gap:12px; margin-bottom:20px; }
+.decision-card { background:var(--surface); border:1px solid var(--border); border-radius:var(--radius-lg); overflow:hidden; transition:border-color .15s; }
+.decision-card:hover { border-color:var(--border2); }
+.decision-card.route-eletrica { border-left:3px solid var(--red); }
+.decision-card.route-eletrica-monitor { border-left:3px solid var(--orange); }
+.decision-card.route-mecanica { border-left:3px solid var(--blue); }
+.decision-card.route-ok { border-left:3px solid var(--green); }
+.dc-header { padding:12px 14px; display:flex; align-items:center; justify-content:space-between; border-bottom:1px solid var(--border); }
+.dc-plate { font-family:'IBM Plex Mono',monospace; font-size:16px; font-weight:600; letter-spacing:.06em; }
+.dc-routing { display:flex; align-items:center; gap:6px; }
+.routing-badge { padding:4px 10px; border-radius:4px; font-size:10px; font-weight:600; text-transform:uppercase; letter-spacing:.06em; }
+.routing-badge.eletrica { background:var(--red-bg); color:var(--red); border:1px solid rgba(248,81,73,.2); }
+.routing-badge.eletrica-monitor { background:var(--orange-bg); color:var(--orange); border:1px solid rgba(227,137,75,.2); }
+.routing-badge.mecanica { background:var(--blue-bg); color:var(--blue); border:1px solid rgba(88,166,255,.2); }
+.routing-badge.ok { background:var(--green-bg); color:var(--green); border:1px solid rgba(63,185,80,.2); }
+.dc-body { padding:12px 14px; }
+.dc-bat-row { display:flex; align-items:center; gap:8px; margin-bottom:10px; }
+.dc-bat-val { font-family:'IBM Plex Mono',monospace; font-size:20px; font-weight:600; }
+.dc-bat-trend { font-size:11px; }
+.bat-bar { flex:1; height:5px; background:var(--surface2); border-radius:3px; overflow:hidden; }
+.bat-fill { height:100%; border-radius:3px; transition:width .5s; }
+.dc-faults { display:flex; flex-wrap:wrap; gap:5px; margin-bottom:10px; }
+.fault-tag { background:var(--surface2); border:1px solid var(--border); border-radius:4px; padding:3px 7px; font-family:'IBM Plex Mono',monospace; font-size:10px; color:var(--text); }
+.fault-tag.elec-related { background:rgba(248,81,73,.08); border-color:rgba(248,81,73,.2); color:#ff9590; }
+.fault-tag.unknown { border-style:dashed; color:var(--text2); }
+.dc-insight { font-size:11px; color:var(--text2); line-height:1.5; padding:8px 10px; background:var(--surface2); border-radius:var(--radius); border-left:2px solid var(--border2); }
+.dc-insight.urgent { border-left-color:var(--red); color:#f0b8b5; background:var(--red-bg); }
+.dc-insight.warn { border-left-color:var(--amber); color:#f0d090; background:var(--amber-bg); }
+.dc-meta { display:flex; align-items:center; gap:12px; margin-top:10px; font-size:10px; color:var(--text3); }
 
-    /* ── GRÁFICO ── */
-    .chart-section { border-top: 1px solid var(--border-dark); padding-top: 15px; }
-    .chart-title { font-size: 13px; color: #888; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 10px; }
-    .chart-container { width: 100%; height: 160px; position: relative; }
-    
-    .loader { text-align: center; color: var(--neon-blue); padding: 50px; font-family: 'Roboto Mono'; letter-spacing: 2px; display: none; }
-  </style>
+/* ── Grid 2 cols ── */
+.grid2 { display:grid; grid-template-columns:1fr 1fr; gap:16px; margin-bottom:20px; }
+.grid3 { display:grid; grid-template-columns:2fr 1fr; gap:16px; margin-bottom:20px; }
+.card { background:var(--surface); border:1px solid var(--border); border-radius:var(--radius-lg); padding:16px; }
+
+/* ── Chart ── */
+.chart-wrap { position:relative; width:100%; height:280px; }
+.chart-legend { display:flex; flex-wrap:wrap; gap:12px; margin-bottom:12px; }
+.cleg { display:flex; align-items:center; gap:5px; font-size:11px; color:var(--text2); }
+.cleg-dot { width:8px; height:8px; border-radius:2px; flex-shrink:0; }
+
+/* ── Table ── */
+.tbl-wrap { overflow-x:auto; }
+table.dtc { width:100%; border-collapse:collapse; font-size:12px; }
+table.dtc th { font-size:10px; font-weight:500; text-transform:uppercase; letter-spacing:.06em; color:var(--text2); padding:8px 10px; text-align:left; border-bottom:1px solid var(--border); white-space:nowrap; }
+table.dtc td { padding:9px 10px; border-bottom:1px solid var(--border); vertical-align:middle; }
+table.dtc tbody tr:last-child td { border-bottom:none; }
+table.dtc tbody tr:hover td { background:var(--surface2); }
+.tag { display:inline-flex; align-items:center; gap:4px; padding:2px 8px; border-radius:20px; font-size:10px; font-weight:500; white-space:nowrap; }
+.tag-crit { background:var(--red-bg); color:var(--red); }
+.tag-warn { background:var(--amber-bg); color:var(--amber); }
+.tag-ok   { background:var(--green-bg); color:var(--green); }
+.tag-info { background:var(--blue-bg); color:var(--blue); }
+.tag-orange { background:var(--orange-bg); color:var(--orange); }
+.corr-bar { height:5px; border-radius:3px; background:var(--surface2); margin-top:4px; overflow:hidden; }
+.corr-fill { height:100%; border-radius:3px; }
+
+/* ── Insights box ── */
+.insights-panel { background:var(--surface); border:1px solid var(--border); border-radius:var(--radius-lg); padding:16px; margin-bottom:20px; }
+.insight-list { display:flex; flex-direction:column; gap:8px; }
+.insight-item { display:flex; gap:10px; padding:10px 12px; background:var(--surface2); border-radius:var(--radius); border-left:3px solid var(--border2); font-size:12px; line-height:1.6; }
+.insight-item.critical { border-left-color:var(--red); }
+.insight-item.warning { border-left-color:var(--amber); }
+.insight-item.info { border-left-color:var(--blue); }
+.insight-item.success { border-left-color:var(--green); }
+.insight-icon { font-size:14px; flex-shrink:0; margin-top:1px; }
+.insight-text { color:var(--text2); }
+.insight-text strong { color:var(--text); }
+
+/* ── Hour heatmap ── */
+.heatmap-grid { display:grid; grid-template-columns:repeat(24,1fr); gap:3px; margin-top:4px; }
+.hm-cell { aspect-ratio:1; border-radius:2px; background:var(--surface2); cursor:pointer; position:relative; }
+.hm-cell:hover::after { content:attr(data-tip); position:absolute; bottom:calc(100% + 4px); left:50%; transform:translateX(-50%); background:var(--surface); border:1px solid var(--border2); border-radius:4px; padding:4px 8px; font-size:10px; color:var(--text); white-space:nowrap; z-index:10; pointer-events:none; }
+.hm-label { display:flex; justify-content:space-between; font-size:9px; color:var(--text3); margin-top:4px; font-family:'IBM Plex Mono',monospace; }
+
+/* ── Modal ── */
+.modal-overlay { position:fixed; inset:0; background:rgba(0,0,0,.7); z-index:200; display:flex; align-items:center; justify-content:center; }
+.modal-overlay.hidden { display:none; }
+.modal { background:var(--surface); border:1px solid var(--border); border-radius:var(--radius-lg); padding:24px; width:500px; max-width:95vw; }
+.modal h3 { font-size:15px; font-weight:500; margin-bottom:4px; }
+.modal-sub { font-size:12px; color:var(--text2); margin-bottom:20px; }
+.form-group { margin-bottom:14px; }
+.form-group label { display:block; font-size:11px; color:var(--text2); margin-bottom:5px; text-transform:uppercase; letter-spacing:.06em; }
+.form-group input, .form-group select { width:100%; background:var(--surface2); border:1px solid var(--border); border-radius:var(--radius); color:var(--text); font-family:'IBM Plex Sans',sans-serif; font-size:13px; padding:8px 10px; outline:none; transition:border-color .15s; }
+.form-group input:focus, .form-group select:focus { border-color:var(--amber); }
+.form-group input::placeholder { color:var(--text3); }
+.form-note { font-size:11px; color:var(--text3); margin-top:4px; }
+.form-actions { display:flex; gap:8px; justify-content:flex-end; margin-top:20px; }
+.modal-tabs { display:flex; gap:0; margin-bottom:20px; border:1px solid var(--border); border-radius:var(--radius); overflow:hidden; }
+.modal-tab { flex:1; padding:7px; text-align:center; font-size:12px; cursor:pointer; color:var(--text2); background:transparent; border:none; font-family:'IBM Plex Sans',sans-serif; transition:all .15s; }
+.modal-tab.active { background:var(--amber); color:#000; font-weight:500; }
+.tab-content { display:none; }
+.tab-content.active { display:block; }
+
+/* ── Empty / loading ── */
+.empty-state { text-align:center; padding:60px 20px; color:var(--text2); }
+.empty-state h3 { font-size:16px; font-weight:500; color:var(--text); margin-bottom:8px; }
+.empty-state p { font-size:13px; }
+.loading-spinner { display:inline-block; width:20px; height:20px; border:2px solid var(--border); border-top-color:var(--amber); border-radius:50%; animation:spin .7s linear infinite; }
+@keyframes spin { to{transform:rotate(360deg);} }
+.loading-wrap { display:flex; align-items:center; justify-content:center; gap:10px; padding:40px; color:var(--text2); font-size:13px; }
+
+/* ── Misc ── */
+.divider { height:1px; background:var(--border); margin:16px 0; }
+.text-mono { font-family:'IBM Plex Mono',monospace; }
+.text-sm { font-size:11px; }
+.text-muted { color:var(--text2); }
+footer { background:var(--surface); border-top:1px solid var(--border); padding:12px 24px; display:flex; align-items:center; justify-content:space-between; font-size:11px; color:var(--text3); }
+
+@media (max-width:900px) {
+  .kpis { grid-template-columns:repeat(2,1fr); }
+  .grid2, .grid3 { grid-template-columns:1fr; }
+  .decisions { grid-template-columns:1fr; }
+}
+</style>
 </head>
 <body>
+<div class="app">
 
-  <header>
-    <div class="brand">Dossiê <span>Técnico</span></div>
-    
-    <div class="filters">
-      <div class="input-group">
-        <label>Placa do Veículo</label>
-        <input type="text" id="filtroPlaca" placeholder="EX: ABC1D23" style="text-transform: uppercase;">
-      </div>
-      <div class="input-group">
-        <label>Data (A partir de)</label>
-        <input type="date" id="dataInicio">
-      </div>
-      <button class="btn" onclick="aplicarFiltros()">Filtrar Dossiê</button>
+<!-- MODAL CONFIG -->
+<div class="modal-overlay" id="modalOverlay">
+  <div class="modal">
+    <h3>Configurar conexão com Metabase</h3>
+    <p class="modal-sub">Informe os dados de acesso para buscar diagnósticos em tempo real.</p>
+    <div class="modal-tabs">
+      <button class="modal-tab active" onclick="switchTab('session')">Token de sessão</button>
+      <button class="modal-tab" onclick="switchTab('apikey')">API Key</button>
+      <button class="modal-tab" onclick="switchTab('demo')">Modo demo</button>
     </div>
-  </header>
+    <div class="tab-content active" id="tab-session">
+      <div class="form-group">
+        <label>URL do Metabase</label>
+        <input type="text" id="mb-url" placeholder="https://metabase.suaempresa.com.br" />
+      </div>
+      <div class="form-group">
+        <label>Session Token</label>
+        <input type="text" id="mb-session" placeholder="xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx" />
+        <p class="form-note">Obtido via POST /api/session com usuário e senha, ou inspecionando cookies após login.</p>
+      </div>
+      <div class="form-group">
+        <label>Card ID (número da pergunta salva)</label>
+        <input type="number" id="mb-card" placeholder="42" />
+        <p class="form-note">Número da URL quando abrimos a pergunta no Metabase. Ex: /question/<strong>42</strong></p>
+      </div>
+      <div class="form-group">
+        <label>Atualizar a cada (minutos)</label>
+        <select id="mb-refresh"><option value="1">1 min</option><option value="5" selected>5 min</option><option value="10">10 min</option><option value="30">30 min</option><option value="0">Desativado</option></select>
+      </div>
+    </div>
+    <div class="tab-content" id="tab-apikey">
+      <div class="form-group">
+        <label>URL do Metabase</label>
+        <input type="text" id="mb-url-k" placeholder="https://metabase.suaempresa.com.br" />
+      </div>
+      <div class="form-group">
+        <label>API Key</label>
+        <input type="text" id="mb-apikey" placeholder="mb_xxxxxxxxxxxxxxxxxxxxxxxx" />
+        <p class="form-note">Metabase v0.50+: Configurações → Admin → Autenticação → Chaves de API.</p>
+      </div>
+      <div class="form-group">
+        <label>Card ID</label>
+        <input type="number" id="mb-card-k" placeholder="42" />
+      </div>
+      <div class="form-group">
+        <label>Atualizar a cada (minutos)</label>
+        <select id="mb-refresh-k"><option value="1">1 min</option><option value="5" selected>5 min</option><option value="10">10 min</option><option value="30">30 min</option><option value="0">Desativado</option></select>
+      </div>
+    </div>
+    <div class="tab-content" id="tab-demo">
+      <div style="padding:16px; background:var(--surface2); border-radius:var(--radius); font-size:12px; color:var(--text2); line-height:1.8;">
+        O modo demo carrega dados fictícios realistas com:<br>
+        ✦ 5 veículos com histórico de 7 dias<br>
+        ✦ Falhas elétricas correlacionadas à bateria baixa<br>
+        ✦ Falhas mecânicas sem correlação de tensão<br>
+        ✦ Todos os algoritmos de análise ativos<br><br>
+        <span style="color:var(--amber);">Ideal para apresentações e treinamentos da equipe.</span>
+      </div>
+    </div>
+    <div class="form-actions">
+      <button class="btn" onclick="closeModal()">Cancelar</button>
+      <button class="btn primary" onclick="saveConfig()">Conectar e carregar dados</button>
+    </div>
+  </div>
+</div>
 
-  <main>
-    <div id="loader" class="loader">COMPILANDO HISTÓRICOS DE MANUTENÇÃO...</div>
-    <div class="grid" id="gridCards"></div>
-  </main>
+<!-- HEADER -->
+<div class="header">
+  <div class="header-left">
+    <div class="logo">
+      <div class="logo-icon">
+        <svg viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <rect x="2" y="6" width="12" height="6" rx="1.5" stroke="#000" stroke-width="1.5"/>
+          <path d="M5 6V4.5C5 3.12 6.12 2 7.5 2h1C9.88 2 11 3.12 11 4.5V6" stroke="#000" stroke-width="1.5" stroke-linecap="round"/>
+          <path d="M6 9h4M8 8v2" stroke="#000" stroke-width="1.2" stroke-linecap="round"/>
+        </svg>
+      </div>
+      <span class="logo-name">DIAG<span>FLEET</span></span>
+    </div>
+    <div class="header-status">
+      <div class="status-dot" id="statusDot"></div>
+      <span id="statusText">Aguardando configuração</span>
+    </div>
+  </div>
+  <div class="header-right">
+    <span class="last-update" id="lastUpdate">—</span>
+    <button class="btn" onclick="loadData()" id="btnRefresh" style="display:none;">
+      <svg viewBox="0 0 16 16" fill="none"><path d="M13.5 8A5.5 5.5 0 112.5 8" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/><path d="M2.5 5.5V8H5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      Atualizar
+    </button>
+    <button class="btn" onclick="openModal()">
+      <svg viewBox="0 0 16 16" fill="none"><circle cx="8" cy="8" r="2.5" stroke="currentColor" stroke-width="1.4"/><path d="M8 1v2M8 13v2M1 8h2M13 8h2M3.05 3.05l1.42 1.42M11.53 11.53l1.42 1.42M3.05 12.95l1.42-1.42M11.53 4.47l1.42-1.42" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg>
+      Configurar
+    </button>
+    <button class="btn" onclick="exportReport()">
+      <svg viewBox="0 0 16 16" fill="none"><path d="M8 10V2M5 7l3 3 3-3" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/><path d="M2 12h12" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg>
+      Exportar
+    </button>
+  </div>
+</div>
 
-  <script>
-    // Cole aqui a URL gerada pelo Google Apps Script
-    const URL_API = "COLE_AQUI"; 
-    
-    let dadosBrutos = [];
-    let graficosAtivos = [];
+<!-- MAIN -->
+<div class="main" id="mainContent">
+  <!-- empty -->
+  <div class="empty-state" id="emptyState">
+    <div style="font-size:40px; margin-bottom:16px;">⚡</div>
+    <h3>Central de Diagnóstico — Bateria & Falhas</h3>
+    <p>Configure a conexão com o Metabase ou use o modo demo para começar.</p>
+    <br>
+    <button class="btn primary" onclick="openModal()" style="margin:0 auto;">Conectar ao Metabase</button>
+  </div>
+  <div id="dashContent" style="display:none;">
 
-    // Lógica inteligente para agrupar múltiplos diagnósticos e o gráfico da bateria
-    function agruparDados(dados) {
-      const carros = {};
-      
-      dados.forEach(linha => {
-        const placa = linha["Placa"];
-        
-        if (!carros[placa]) {
-          carros[placa] = {
-            placa: placa,
-            diagnosticos: [],
-            bateria: []
-          };
-        }
-        
-        // 1. Coletar Histórico de Bateria (Garantir que não duplique horas)
-        if(linha["Data/Hora Leitura (Para o Gráfico)"] && linha["Tensão Bateria"]) {
-           const horaStr = linha["Data/Hora Leitura (Para o Gráfico)"];
-           const jaExiste = carros[placa].bateria.some(b => b.hora === horaStr);
-           
-           if(!jaExiste) {
-               carros[placa].bateria.push({
-                 hora: horaStr,
-                 tensao: parseFloat(linha["Tensão Bateria"])
-               });
-           }
-        }
+    <!-- ALERT -->
+    <div class="alert-banner hidden" id="alertBanner"></div>
 
-        // 2. Coletar Histórico de Diagnósticos (Garantir que não duplique)
-        if(linha["Diagnóstico finalizado em"]) {
-            const diagStr = linha["Diagnóstico finalizado em"];
-            const jaExisteDiag = carros[placa].diagnosticos.some(d => d.data === diagStr);
-            
-            if(!jaExisteDiag) {
-                carros[placa].diagnosticos.push({
-                    data: diagStr,
-                    codigos: linha["Códigos encontrados"],
-                    notas: linha["Informações adicionais"]
-                });
-            }
-        }
-      });
+    <!-- KPIs -->
+    <div class="kpis">
+      <div class="kpi critical">
+        <div class="kpi-label">Encaminhar elétrica</div>
+        <div class="kpi-value" id="kpi1">0</div>
+        <div class="kpi-sub">veículos urgentes</div>
+      </div>
+      <div class="kpi warning">
+        <div class="kpi-label">Monitorar elétrica</div>
+        <div class="kpi-value" id="kpi2">0</div>
+        <div class="kpi-sub">investigar bateria</div>
+      </div>
+      <div class="kpi info">
+        <div class="kpi-label">Rot. mecânica</div>
+        <div class="kpi-value" id="kpi3">0</div>
+        <div class="kpi-sub">sem correlação elét.</div>
+      </div>
+      <div class="kpi">
+        <div class="kpi-label">Total diagnósticos</div>
+        <div class="kpi-value" id="kpi4">0</div>
+        <div class="kpi-sub">últ. 15 dias</div>
+      </div>
+      <div class="kpi">
+        <div class="kpi-label">Horas críticas (&lt;12V)</div>
+        <div class="kpi-value" id="kpi5">0</div>
+        <div class="kpi-sub">h acumuladas frota</div>
+      </div>
+    </div>
 
-      return Object.values(carros);
+    <!-- SECTION: DECISÕES POR VEÍCULO -->
+    <div class="section-header">
+      <span class="section-title">Decisão por veículo — roteamento de oficina</span>
+      <div style="display:flex;gap:8px;align-items:center;">
+        <span class="tag tag-crit"><span style="font-size:8px;">●</span> Elétrica urgente</span>
+        <span class="tag tag-orange"><span style="font-size:8px;">●</span> Monitorar</span>
+        <span class="tag tag-info"><span style="font-size:8px;">●</span> Mecânica</span>
+        <span class="tag tag-ok"><span style="font-size:8px;">●</span> OK</span>
+      </div>
+    </div>
+    <div class="decisions" id="decisionsGrid"></div>
+
+    <!-- BATTERY CHART + HEATMAP -->
+    <div class="grid3">
+      <div class="card">
+        <div class="section-header" style="margin-bottom:8px;">
+          <span class="section-title">Histórico de tensão hora a hora</span>
+          <select id="chartPlacaSel" onchange="updateChart()" style="background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius);color:var(--text);font-size:11px;padding:4px 8px;"></select>
+        </div>
+        <div class="chart-legend">
+          <span class="cleg"><span class="cleg-dot" style="background:var(--green)"></span>Normal ≥12.4V</span>
+          <span class="cleg"><span class="cleg-dot" style="background:var(--amber)"></span>Atenção 12–12.4V</span>
+          <span class="cleg"><span class="cleg-dot" style="background:var(--red)"></span>Crítico &lt;12V</span>
+          <span class="cleg"><span class="cleg-dot" style="background:#D4537E;border-radius:50%"></span>Falha registrada</span>
+        </div>
+        <div class="chart-wrap"><canvas id="batChart"></canvas></div>
+      </div>
+      <div class="card">
+        <div class="section-header" style="margin-bottom:8px;">
+          <span class="section-title">Falhas por hora do dia</span>
+        </div>
+        <p style="font-size:11px;color:var(--text2);margin-bottom:10px;">Identifica se falhas se concentram em períodos noturnos (bateria descarregando sem carga).</p>
+        <div class="heatmap-grid" id="heatmapGrid"></div>
+        <div class="hm-label"><span>00h</span><span>06h</span><span>12h</span><span>18h</span><span>23h</span></div>
+        <div class="divider"></div>
+        <div id="hmInsight" style="font-size:11px;color:var(--text2);line-height:1.6;"></div>
+      </div>
+    </div>
+
+    <!-- FAULT TABLE -->
+    <div class="card" style="margin-bottom:20px;">
+      <div class="section-header">
+        <span class="section-title">Análise de correlação — códigos de falha × tensão da bateria</span>
+        <div style="display:flex;gap:6px;">
+          <input type="text" id="filterPlaca" placeholder="Filtrar placa..." onkeyup="renderTable()" style="background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius);color:var(--text);font-size:11px;padding:4px 8px;width:140px;">
+          <select id="filterDept" onchange="renderTable()" style="background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius);color:var(--text);font-size:11px;padding:4px 8px;">
+            <option value="">Todos os depts</option>
+            <option value="ELÉTRICA">Elétrica</option>
+            <option value="MECÂNICA">Mecânica</option>
+          </select>
+        </div>
+      </div>
+      <div class="tbl-wrap">
+        <table class="dtc">
+          <thead>
+            <tr>
+              <th>Placa</th>
+              <th>Data diagnóstico</th>
+              <th>Código DTC</th>
+              <th>Descrição</th>
+              <th>Tensão na hora</th>
+              <th>Sensibilidade bat.</th>
+              <th>Correlação</th>
+              <th>Departamento</th>
+              <th>Ação recomendada</th>
+            </tr>
+          </thead>
+          <tbody id="dtcTbody"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- INSIGHTS -->
+    <div class="insights-panel" style="margin-bottom:20px;">
+      <div class="section-header"><span class="section-title">Análise automática — insights para o analista</span></div>
+      <div class="insight-list" id="insightList"></div>
+    </div>
+
+    <!-- REFERÊNCIA DTC -->
+    <div class="card" style="margin-bottom:20px;">
+      <div class="section-header"><span class="section-title">Base de referência — DTCs sensíveis à bateria</span></div>
+      <p style="font-size:11px;color:var(--text2);margin-bottom:12px;">Códigos marcados como <span style="color:var(--red)">alta sensibilidade</span> devem ser investigados no departamento elétrico antes de qualquer intervenção mecânica quando a tensão estiver abaixo de 12.4V.</p>
+      <div class="tbl-wrap">
+        <table class="dtc">
+          <thead><tr><th>Código</th><th>Descrição</th><th>Sistema</th><th>Sensibilidade bat.</th><th>Tensão crítica</th><th>Departamento primário</th></tr></thead>
+          <tbody id="refTbody"></tbody>
+        </table>
+      </div>
+    </div>
+
+  </div><!-- end dashContent -->
+</div>
+
+<footer>
+  <span class="mono">DIAGFLEET v2.0 — Gestão técnica de frota</span>
+  <span>Fonte: Metabase · Dados: <span id="footerRange">—</span></span>
+</footer>
+
+</div><!-- end app -->
+
+<script>
+// ═══════════════════════════════════════════════════════════
+// DTC KNOWLEDGE BASE
+// ═══════════════════════════════════════════════════════════
+const DTC_DB = {
+  // Diretamente relacionados à bateria / tensão
+  'P0562': { desc:'Tensão do sistema elétrico baixa',           sys:'Alimentação',    batSens:'DIRETO',  voltCrit:12.4, dept:'ELÉTRICA',  severity:4 },
+  'P0563': { desc:'Tensão do sistema elétrico alta',            sys:'Alimentação',    batSens:'DIRETO',  voltCrit:14.7, dept:'ELÉTRICA',  severity:3 },
+  'P0625': { desc:'Terminal F do alternador — tensão baixa',    sys:'Carga/Alternador',batSens:'DIRETO', voltCrit:12.4, dept:'ELÉTRICA',  severity:4 },
+  'P0626': { desc:'Terminal F do alternador — tensão alta',     sys:'Carga/Alternador',batSens:'DIRETO', voltCrit:14.8, dept:'ELÉTRICA',  severity:3 },
+  'P0627': { desc:'Falha relé da bomba de combustível',         sys:'Alimentação',    batSens:'ALTO',    voltCrit:11.8, dept:'ELÉTRICA',  severity:3 },
+  // Comunicação CAN / Redes
+  'U0001': { desc:'Barramento CAN alta velocidade — falha',     sys:'Rede CAN',       batSens:'ALTO',    voltCrit:11.5, dept:'ELÉTRICA',  severity:4 },
+  'U0073': { desc:'Barramento de controle desligado (Bus-Off)', sys:'Rede CAN',       batSens:'ALTO',    voltCrit:11.5, dept:'ELÉTRICA',  severity:4 },
+  'U0100': { desc:'Sem comunicação com ECM/PCM',                sys:'Rede CAN',       batSens:'ALTO',    voltCrit:11.5, dept:'ELÉTRICA',  severity:4 },
+  'U0101': { desc:'Sem comunicação com TCM (câmbio)',           sys:'Rede CAN',       batSens:'ALTO',    voltCrit:11.5, dept:'ELÉTRICA',  severity:4 },
+  'U0103': { desc:'Sem comunicação com módulo marcha lenta',    sys:'Rede CAN',       batSens:'ALTO',    voltCrit:11.5, dept:'ELÉTRICA',  severity:3 },
+  'U0121': { desc:'Sem comunicação com módulo ABS/ESP',         sys:'Rede CAN',       batSens:'ALTO',    voltCrit:11.5, dept:'ELÉTRICA',  severity:4 },
+  'U0140': { desc:'Sem comunicação com BCM (módulo carroceria)',sys:'Rede CAN',       batSens:'ALTO',    voltCrit:11.8, dept:'ELÉTRICA',  severity:3 },
+  'U0155': { desc:'Sem comunicação com painel de instrumentos', sys:'Rede CAN',       batSens:'ALTO',    voltCrit:11.8, dept:'ELÉTRICA',  severity:2 },
+  'U0164': { desc:'Sem comunicação com módulo A/C',             sys:'Rede CAN',       batSens:'MÉDIO',   voltCrit:11.5, dept:'ELÉTRICA',  severity:2 },
+  // Módulos internos ECM
+  'P0600': { desc:'Link comunicação serial — defeito',          sys:'ECM/PCM',        batSens:'ALTO',    voltCrit:11.5, dept:'ELÉTRICA',  severity:4 },
+  'P0601': { desc:'Erro checksum memória interna ECM',          sys:'ECM/PCM',        batSens:'ALTO',    voltCrit:11.8, dept:'ELÉTRICA',  severity:4 },
+  'P0602': { desc:'Erro de programação módulo de controle',     sys:'ECM/PCM',        batSens:'MÉDIO',   voltCrit:12.0, dept:'ELÉTRICA',  severity:3 },
+  'P0604': { desc:'Erro RAM interna ECM',                       sys:'ECM/PCM',        batSens:'ALTO',    voltCrit:11.8, dept:'ELÉTRICA',  severity:4 },
+  'P0605': { desc:'Erro ROM interna ECM',                       sys:'ECM/PCM',        batSens:'MÉDIO',   voltCrit:12.0, dept:'ELÉTRICA',  severity:3 },
+  // Módulos de carroceria
+  'B1001': { desc:'Falha hardware — módulo de conforto',        sys:'BCM/Conforto',   batSens:'ALTO',    voltCrit:11.8, dept:'ELÉTRICA',  severity:3 },
+  'B1004': { desc:'Falha módulo alarme / travas centrais',      sys:'BCM/Conforto',   batSens:'ALTO',    voltCrit:11.8, dept:'ELÉTRICA',  severity:2 },
+  'B2799': { desc:'Imobilizador — sinal de chave incorreto',    sys:'Imobilizador',   batSens:'ALTO',    voltCrit:11.5, dept:'ELÉTRICA',  severity:4 },
+  'B1220': { desc:'Sensor pressão airbag — circuito',           sys:'Airbag/SRS',     batSens:'BAIXO',   voltCrit:10.5, dept:'ELÉTRICA',  severity:3 },
+  // ABS / Segurança ativa
+  'C1210': { desc:'Sensor velocidade roda dianteira esq.',      sys:'ABS/ESP',        batSens:'BAIXO',   voltCrit:10.5, dept:'MECÂNICA',  severity:3 },
+  'C0035': { desc:'Circuito sensor velocidade roda DF',         sys:'ABS/ESP',        batSens:'BAIXO',   voltCrit:10.5, dept:'MECÂNICA',  severity:3 },
+  'C0040': { desc:'Circuito sensor velocidade roda DE',         sys:'ABS/ESP',        batSens:'BAIXO',   voltCrit:10.5, dept:'MECÂNICA',  severity:3 },
+  // Motor / mecânica
+  'P0300': { desc:'Falha de ignição aleatória',                 sys:'Motor',          batSens:'MÉDIO',   voltCrit:11.8, dept:'MECÂNICA',  severity:3 },
+  'P0301': { desc:'Falha ignição cilindro 1',                   sys:'Motor',          batSens:'MÉDIO',   voltCrit:11.8, dept:'MECÂNICA',  severity:3 },
+  'P0171': { desc:'Sistema muito pobre — banco 1',              sys:'Motor/Injeção',  batSens:'BAIXO',   voltCrit:11.0, dept:'MECÂNICA',  severity:2 },
+  'P0172': { desc:'Sistema muito rico — banco 1',               sys:'Motor/Injeção',  batSens:'BAIXO',   voltCrit:11.0, dept:'MECÂNICA',  severity:2 },
+  'P0420': { desc:'Eficiência catalisador abaixo do limite',    sys:'Emissões',       batSens:'BAIXO',   voltCrit:10.5, dept:'MECÂNICA',  severity:2 },
+};
+
+// ═══════════════════════════════════════════════════════════
+// STATE
+// ═══════════════════════════════════════════════════════════
+let STATE = {
+  config: null,
+  raw: [],
+  batHistory: {},
+  processed: [],
+  vehicles: {},
+  batChart: null,
+  refreshTimer: null,
+  activeTab: 'session',
+};
+
+// ═══════════════════════════════════════════════════════════
+// MODAL
+// ═══════════════════════════════════════════════════════════
+function openModal() {
+  document.getElementById('modalOverlay').classList.remove('hidden');
+  const cfg = STATE.config;
+  if(cfg) {
+    if(cfg.mode === 'session') { document.getElementById('mb-url').value=cfg.url||''; document.getElementById('mb-session').value=cfg.token||''; document.getElementById('mb-card').value=cfg.cardId||''; }
+    if(cfg.mode === 'apikey') { document.getElementById('mb-url-k').value=cfg.url||''; document.getElementById('mb-apikey').value=cfg.token||''; document.getElementById('mb-card-k').value=cfg.cardId||''; }
+  }
+}
+function closeModal() { document.getElementById('modalOverlay').classList.add('hidden'); }
+function switchTab(tab) {
+  STATE.activeTab = tab;
+  document.querySelectorAll('.modal-tab').forEach((t,i) => t.classList.toggle('active', ['session','apikey','demo'][i]===tab));
+  document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+  document.getElementById('tab-'+tab).classList.add('active');
+}
+function saveConfig() {
+  const tab = STATE.activeTab;
+  let cfg = { mode: tab };
+  if(tab === 'demo') {
+    cfg = { mode:'demo' };
+  } else if(tab === 'session') {
+    cfg.url = document.getElementById('mb-url').value.trim().replace(/\/$/,'');
+    cfg.token = document.getElementById('mb-session').value.trim();
+    cfg.cardId = document.getElementById('mb-card').value.trim();
+    cfg.refresh = parseInt(document.getElementById('mb-refresh').value);
+    if(!cfg.url || !cfg.token || !cfg.cardId) { alert('Preencha todos os campos.'); return; }
+  } else {
+    cfg.url = document.getElementById('mb-url-k').value.trim().replace(/\/$/,'');
+    cfg.token = document.getElementById('mb-apikey').value.trim();
+    cfg.cardId = document.getElementById('mb-card-k').value.trim();
+    cfg.refresh = parseInt(document.getElementById('mb-refresh-k').value);
+    if(!cfg.url || !cfg.token || !cfg.cardId) { alert('Preencha todos os campos.'); return; }
+  }
+  STATE.config = cfg;
+  try { localStorage.setItem('diagfleet_cfg', JSON.stringify(cfg)); } catch(e){}
+  closeModal();
+  loadData();
+  setupAutoRefresh();
+}
+
+// ═══════════════════════════════════════════════════════════
+// DATA FETCHING
+// ═══════════════════════════════════════════════════════════
+async function loadData() {
+  setStatus('loading', 'Carregando dados...');
+  document.getElementById('emptyState').style.display = 'none';
+  document.getElementById('dashContent').innerHTML = '<div class="loading-wrap"><div class="loading-spinner"></div><span>Buscando dados do Metabase...</span></div>';
+  document.getElementById('dashContent').style.display = 'block';
+  document.getElementById('btnRefresh').style.display = 'flex';
+
+  try {
+    let rows = [];
+    if(STATE.config.mode === 'demo') {
+      rows = generateDemoData();
+    } else {
+      rows = await fetchMetabase();
+    }
+    STATE.raw = rows;
+    processData(rows);
+    renderDashboard();
+    setStatus('live', 'Dados ao vivo');
+    document.getElementById('lastUpdate').textContent = 'Atualizado: ' + new Date().toLocaleTimeString('pt-BR');
+    document.getElementById('footerRange').textContent = 'Últimos 15 dias · ' + rows.length + ' registros';
+  } catch(err) {
+    setStatus('error', 'Erro na conexão');
+    document.getElementById('dashContent').innerHTML = `<div class="empty-state"><h3>Erro ao carregar dados</h3><p>${err.message}</p><br><button class="btn" onclick="openModal()">Reconfigurar</button></div>`;
+    console.error(err);
+  }
+}
+
+async function fetchMetabase() {
+  const { url, token, cardId, mode } = STATE.config;
+  const headers = { 'Content-Type':'application/json' };
+  if(mode === 'session') headers['X-Metabase-Session'] = token;
+  else headers['X-Api-Key'] = token;
+
+  const res = await fetch(`${url}/api/card/${cardId}/query/json`, { method:'POST', headers, body:'{}' });
+  if(!res.ok) {
+    const txt = await res.text();
+    throw new Error(`Metabase retornou ${res.status}: ${txt.slice(0,200)}`);
+  }
+  const data = await res.json();
+  // Metabase /query/json returns array of row objects
+  if(Array.isArray(data)) return data;
+  // Or might return { data: { rows, cols } }
+  if(data.data && data.data.rows) {
+    const cols = data.data.cols.map(c => c.display_name || c.name);
+    return data.data.rows.map(r => { const o={}; cols.forEach((c,i)=>o[c]=r[i]); return o; });
+  }
+  throw new Error('Formato de resposta do Metabase não reconhecido.');
+}
+
+// ═══════════════════════════════════════════════════════════
+// DEMO DATA GENERATOR
+// ═══════════════════════════════════════════════════════════
+function generateDemoData() {
+  const placas = ['ABC1D23','DEF4G56','GHI7J89','JKL2M34','NOP5Q67'];
+  const faultSets = [
+    { faults:['P0562','U0073','B1001'], notes:'Veículo com falhas recorrentes de comunicação' },
+    { faults:['P0562','P0601'], notes:'ECM apresentando erros de memória' },
+    { faults:['C1210','P0300'], notes:'Sensor ABS e falha de ignição' },
+    { faults:['U0100','U0140'], notes:'Múltiplos módulos sem comunicação' },
+    { faults:['B2799','P0625'], notes:'Imobilizador + alternador com baixa' },
+    { faults:['P0420'], notes:'Catalisador abaixo da eficiência' },
+    { faults:['P0171','C0035'], notes:'Sistema pobre + sensor roda' },
+  ];
+  const rows = [];
+  const now = new Date();
+
+  placas.forEach(placa => {
+    // Generate battery history
+    STATE.batHistory[placa] = [];
+    let v = 12.4 + Math.random()*0.4;
+    for(let h=15*24; h>=0; h--) {
+      const dt = new Date(now.getTime() - h*3600000);
+      const hr = dt.getHours();
+      const drain = (hr >= 22 || hr < 6) ? 0.05+Math.random()*0.06 : -0.04-Math.random()*0.05;
+      v = Math.max(10.6, Math.min(14.4, v + drain + (Math.random()-0.5)*0.08));
+      STATE.batHistory[placa].push({ dt: new Date(dt), v: parseFloat(v.toFixed(2)) });
     }
 
-    function renderizarCards(carrosAgrupados) {
-      const container = document.getElementById('gridCards');
-      container.innerHTML = '';
-      
-      graficosAtivos.forEach(chart => chart.destroy());
-      graficosAtivos = [];
-
-      if(carrosAgrupados.length === 0) {
-        container.innerHTML = '<div style="grid-column: 1/-1; text-align:center; color:#666; margin-top:50px;">Nenhum registro encontrado.</div>';
-        return;
-      }
-
-      carrosAgrupados.forEach((carro, index) => {
-        const card = document.createElement('div');
-        card.className = 'tech-card';
-        
-        // Ordena os diagnósticos do mais novo para o mais antigo
-        carro.diagnosticos.sort((a, b) => new Date(b.data) - new Date(a.data));
-        
-        const totalDiags = carro.diagnosticos.length;
-        
-        // Verifica se é reincidente
-        const alertaReincidencia = totalDiags > 1 
-            ? `<div class="badge-alert">⚠️ REINCIDENTE (${totalDiags}x)</div>` 
-            : '';
-
-        // Monta a linha do tempo em HTML
-        let timelineHTML = '';
-        carro.diagnosticos.forEach((diag, i) => {
-            const isRecent = i === 0 ? 'recent' : '';
-            const d = new Date(diag.data);
-            const dataFormatada = d.toLocaleDateString('pt-BR') + ' às ' + d.toLocaleTimeString('pt-BR', {hour: '2-digit', minute:'2-digit'});
-            
-            timelineHTML += `
-              <div class="timeline-item ${isRecent}">
-                 <div class="diag-date">${dataFormatada} ${i===0 ? '(Mais Recente)' : ''}</div>
-                 <div class="diag-codes">⚙️ Falhas: ${diag.codigos || 'Nenhum código gerado'}</div>
-                 <div class="diag-notes">📝 ${diag.notas || 'Sem observações do técnico.'}</div>
-              </div>
-            `;
+    // Generate fault events
+    const nFaults = 1 + Math.floor(Math.random()*3);
+    for(let i=0; i<nFaults; i++) {
+      const hoursBack = Math.floor(Math.random()*14*24);
+      const diagDt = new Date(now.getTime() - hoursBack*3600000);
+      const fs = faultSets[Math.floor(Math.random()*faultSets.length)];
+      const batPt = getBatAtTime(placa, diagDt);
+      fs.faults.forEach(code => {
+        rows.push({
+          'Placa': placa,
+          'Diagnóstico finalizado em': diagDt.toISOString(),
+          'Códigos encontrados': code,
+          'Informações adicionais': fs.notes,
+          'Data/Hora Leitura (Para o Gráfico)': diagDt.toISOString(),
+          'Tensão Bateria': batPt ? batPt.v : (11.5 + Math.random()*1.5),
         });
-
-        if (totalDiags === 0) {
-            timelineHTML = `<div style="color:#666; font-style:italic; padding:10px;">Nenhum diagnóstico registrado.</div>`;
-        }
-
-        // Estrutura do Card
-        card.innerHTML = `
-          ${alertaReincidencia}
-          <div class="card-header">
-            <div class="placa">${carro.placa}</div>
-            <div class="resumo-placa">Histórico de Passagens: ${totalDiags} registro(s)</div>
-          </div>
-          
-          <div class="timeline">
-             ${timelineHTML}
-          </div>
-
-          <div class="chart-section">
-            <div class="chart-title">📉 Tensão da Bateria (15 Dias)</div>
-            <div class="chart-container">
-              <canvas id="chart_${index}"></canvas>
-            </div>
-          </div>
-        `;
-        
-        container.appendChild(card);
-
-        // --- Renderizar o Gráfico ---
-        const historico = carro.bateria.sort((a, b) => new Date(a.hora) - new Date(b.hora));
-        
-        if (historico.length > 0) {
-            const labels = historico.map(h => {
-              const d = new Date(h.hora);
-              return `${d.getDate()}/${d.getMonth()+1} ${d.getHours()}:00`;
-            });
-            
-            const tensoes = historico.map(h => h.tensao);
-            
-            const ctx = document.getElementById(`chart_${index}`).getContext('2d');
-            const novoGrafico = new Chart(ctx, {
-              type: 'line',
-              data: {
-                labels: labels,
-                datasets: [{
-                  data: tensoes,
-                  borderColor: '#00f3ff',
-                  backgroundColor: 'rgba(0, 243, 255, 0.05)',
-                  borderWidth: 2,
-                  pointRadius: 0,
-                  pointHoverRadius: 4,
-                  fill: true,
-                  tension: 0.4
-                }]
-              },
-              options: {
-                responsive: true, maintainAspectRatio: false,
-                plugins: { legend: { display: false }, tooltip: { mode: 'index', intersect: false } },
-                scales: {
-                  x: { ticks: { color: '#666', font: {size: 9}, maxTicksLimit: 5 }, grid: { display: false } },
-                  y: { 
-                    ticks: { color: '#888', font: {family: 'Roboto Mono'} }, 
-                    grid: { color: 'rgba(255,255,255,0.05)' },
-                    suggestedMin: 11 // Tenta focar nas quedas de tensão abaixo de 11V
-                  }
-                }
-              }
-            });
-            graficosAtivos.push(novoGrafico);
-        } else {
-            document.getElementById(`chart_${index}`).parentElement.innerHTML = '<div style="color:#666; text-align:center; padding-top:20px;">Sem dados de telemetria.</div>';
-        }
       });
     }
+  });
+  return rows;
+}
 
-    // JSONP Loader (Adicione a função carregarDados() igual ao painel anterior para produção)
-    
-    function aplicarFiltros() {
-      const placa = document.getElementById('filtroPlaca').value.toUpperCase().trim();
-      const dtInicio = document.getElementById('dataInicio').value;
-      
-      let filtrados = dadosBrutos;
+function getBatAtTime(placa, dt) {
+  const hist = STATE.batHistory[placa] || [];
+  if(!hist.length) return null;
+  let best = null, minD = Infinity;
+  for(const p of hist) {
+    const d = Math.abs(p.dt - dt);
+    if(d < minD) { minD = d; best = p; }
+  }
+  return best;
+}
 
-      if(placa) {
-        filtrados = filtrados.filter(d => d["Placa"].includes(placa));
-      }
-      
-      if(dtInicio) {
-        filtrados = filtrados.filter(d => new Date(d["Diagnóstico finalizado em"]) >= new Date(dtInicio));
-      }
+// ═══════════════════════════════════════════════════════════
+// DATA PROCESSING
+// ═══════════════════════════════════════════════════════════
+function processData(rows) {
+  // Build bat history from rows if not demo
+  if(STATE.config.mode !== 'demo') {
+    STATE.batHistory = {};
+    rows.forEach(r => {
+      const placa = r['Placa'];
+      const dt = r['Data/Hora Leitura (Para o Gráfico)'];
+      const v = parseFloat(r['Tensão Bateria']);
+      if(!dt || isNaN(v)) return;
+      if(!STATE.batHistory[placa]) STATE.batHistory[placa] = [];
+      STATE.batHistory[placa].push({ dt: new Date(dt), v });
+    });
+    Object.keys(STATE.batHistory).forEach(p => {
+      STATE.batHistory[p].sort((a,b) => a.dt-b.dt);
+    });
+  }
 
-      renderizarCards(agruparDados(filtrados));
+  // Group by placa + diagnosis
+  const diagMap = {};
+  rows.forEach(r => {
+    const placa = r['Placa'];
+    const dtStr = r['Diagnóstico finalizado em'];
+    const code = r['Códigos encontrados'];
+    if(!placa || !dtStr) return;
+    const key = `${placa}__${dtStr}`;
+    if(!diagMap[key]) diagMap[key] = { placa, dt: new Date(dtStr), codes: [], notes: r['Informações adicionais']||'', voltage: null };
+    if(code) diagMap[key].codes.push(code.trim().toUpperCase());
+    if(!diagMap[key].voltage) {
+      const v = parseFloat(r['Tensão Bateria']);
+      if(!isNaN(v) && v > 0) diagMap[key].voltage = v;
+    }
+  });
+
+  // Compute routing decision per diagnosis
+  STATE.processed = Object.values(diagMap).map(d => {
+    const uniqueCodes = [...new Set(d.codes)];
+    const v = d.voltage;
+    let routing = 'OK';
+    let routingReason = '';
+    let maxCorr = 0;
+
+    const codeDetails = uniqueCodes.map(code => {
+      const info = DTC_DB[code] || { desc:'Código não catalogado', sys:'Desconhecido', batSens:'DESCONHECIDO', voltCrit:12.0, dept:'MECÂNICA', severity:1 };
+      const corr = computeCorrelation(code, v, info);
+      if(corr > maxCorr) maxCorr = corr;
+      return { code, info, corr };
+    });
+
+    // Routing logic
+    const hasElecCode = codeDetails.some(cd => cd.info.dept === 'ELÉTRICA');
+    const hasHighCorr = codeDetails.some(cd => cd.corr >= 70);
+    const hasMedCorr = codeDetails.some(cd => cd.corr >= 40);
+
+    if(v !== null && v < 12.0 && hasElecCode) {
+      routing = 'ELÉTRICA_URGENTE';
+      routingReason = `Tensão crítica (${v.toFixed(2)}V) + códigos elétricos confirmam falha por subtensão. Encaminhar imediatamente ao departamento elétrico.`;
+    } else if(v !== null && v < 12.4 && hasElecCode) {
+      routing = 'ELÉTRICA_INVESTIGAR';
+      routingReason = `Tensão abaixo do nominal (${v.toFixed(2)}V) com códigos sensíveis à bateria. Investigar sistema de carga antes de intervenção mecânica.`;
+    } else if(hasElecCode && v === null) {
+      routing = 'ELÉTRICA_INVESTIGAR';
+      routingReason = `Códigos elétricos detectados sem leitura de tensão disponível. Verificar bateria antes de continuar.`;
+    } else if(v !== null && v < 12.0 && !hasElecCode) {
+      routing = 'ELÉTRICA_INVESTIGAR';
+      routingReason = `Tensão baixa (${v.toFixed(2)}V) detectada mesmo sem código elétrico direto. Verificar bateria/alternador antes da manutenção mecânica.`;
+    } else if(hasHighCorr || hasMedCorr) {
+      routing = 'ELÉTRICA_INVESTIGAR';
+      routingReason = `Correlação média/alta com condição da bateria. Recomendar verificação elétrica preventiva.`;
+    } else {
+      routing = 'MECÂNICA';
+      routingReason = `Tensão normal e códigos sem correlação elétrica significativa. Seguir fluxo padrão de manutenção mecânica.`;
     }
 
-    // Inicialização - DADOS MOCKADOS PARA TESTE
-    window.onload = () => {
-      // Exemplo de como o sistema lida com dados repetidos vindos do SQL
-      dadosBrutos = [
-        {"Placa": "ASB9A88", "Diagnóstico finalizado em": "2026-04-02T10:00:00", "Códigos encontrados": "P0562", "Informações adicionais": "Bateria não segura carga. Trocada hoje.", "Data/Hora Leitura (Para o Gráfico)": "2026-04-02T08:00:00", "Tensão Bateria": "12.5"},
-        {"Placa": "ASB9A88", "Diagnóstico finalizado em": "2026-04-02T10:00:00", "Códigos encontrados": "P0562", "Informações adicionais": "Bateria não segura carga. Trocada hoje.", "Data/Hora Leitura (Para o Gráfico)": "2026-04-01T14:00:00", "Tensão Bateria": "9.2"},
-        // O MESMO CARRO num diagnóstico da SEMANA PASSADA:
-        {"Placa": "ASB9A88", "Diagnóstico finalizado em": "2026-03-25T15:30:00", "Códigos encontrados": "U0100", "Informações adicionais": "Cliente relatou falha na partida. Limpeza dos bornes.", "Data/Hora Leitura (Para o Gráfico)": "2026-03-25T10:00:00", "Tensão Bateria": "11.1"}
-      ];
-      aplicarFiltros();
-    };
-  </script>
+    return { ...d, codes: uniqueCodes, codeDetails, routing, routingReason, maxCorr };
+  }).sort((a,b) => {
+    const order = { ELÉTRICA_URGENTE:0, ELÉTRICA_INVESTIGAR:1, MECÂNICA:2, OK:3 };
+    return (order[a.routing]||3) - (order[b.routing]||3) || b.dt-a.dt;
+  });
+
+  // Aggregate vehicles
+  STATE.vehicles = {};
+  STATE.processed.forEach(d => {
+    if(!STATE.vehicles[d.placa]) {
+      const hist = STATE.batHistory[d.placa] || [];
+      const voltages = hist.map(p=>p.v);
+      STATE.vehicles[d.placa] = {
+        placa: d.placa,
+        avgVolt: voltages.length ? voltages.reduce((a,b)=>a+b,0)/voltages.length : null,
+        minVolt: voltages.length ? Math.min(...voltages) : null,
+        critHours: voltages.filter(v=>v<12).length,
+        diagnoses: [],
+      };
+    }
+    STATE.vehicles[d.placa].diagnoses.push(d);
+  });
+}
+
+function computeCorrelation(code, voltage, info) {
+  if(voltage === null) return 0;
+  const sensMap = { 'DIRETO':1.0, 'ALTO':0.85, 'MÉDIO':0.5, 'BAIXO':0.15, 'DESCONHECIDO':0.1 };
+  const sens = sensMap[info.batSens] || 0.1;
+  const voltGap = Math.max(0, info.voltCrit - voltage);
+  const voltScore = Math.min(1, voltGap / 1.5);
+  return Math.round(sens * voltScore * 100);
+}
+
+// ═══════════════════════════════════════════════════════════
+// RENDER
+// ═══════════════════════════════════════════════════════════
+function renderDashboard() {
+  document.getElementById('dashContent').innerHTML = getDashHTML();
+  document.getElementById('dashContent').style.display = 'block';
+
+  // Re-attach elements
+  renderKPIs();
+  renderDecisions();
+  renderChart();
+  renderHeatmap();
+  renderTable();
+  renderInsights();
+  renderReference();
+  populateChartSelect();
+}
+
+function getDashHTML() {
+  return document.getElementById('dashContent').innerHTML; // preserved via innerHTML during loadData
+  // Rebuilt in renderDashboard — we clear and re-render below
+}
+
+function renderDashboard() {
+  // Restore dash structure first
+  document.getElementById('dashContent').style.display = 'block';
+  document.getElementById('dashContent').innerHTML = getDashStructure();
+
+  renderKPIs();
+  renderDecisions();
+  renderChart();
+  renderHeatmap();
+  renderTable();
+  renderInsights();
+  renderReference();
+  populateChartSelect();
+}
+
+function getDashStructure() {
+  return `
+  <div class="alert-banner hidden" id="alertBanner"></div>
+  <div class="kpis">
+    <div class="kpi critical"><div class="kpi-label">Encaminhar elétrica</div><div class="kpi-value" id="kpi1">0</div><div class="kpi-sub">veículos urgentes</div></div>
+    <div class="kpi warning"><div class="kpi-label">Monitorar elétrica</div><div class="kpi-value" id="kpi2">0</div><div class="kpi-sub">investigar bateria</div></div>
+    <div class="kpi info"><div class="kpi-label">Rot. mecânica</div><div class="kpi-value" id="kpi3">0</div><div class="kpi-sub">sem correlação elét.</div></div>
+    <div class="kpi"><div class="kpi-label">Total diagnósticos</div><div class="kpi-value" id="kpi4">0</div><div class="kpi-sub">últ. 15 dias</div></div>
+    <div class="kpi"><div class="kpi-label">Horas críticas (&lt;12V)</div><div class="kpi-value" id="kpi5">0</div><div class="kpi-sub">h acumuladas frota</div></div>
+  </div>
+  <div class="section-header">
+    <span class="section-title">Decisão por veículo — roteamento de oficina</span>
+    <div style="display:flex;gap:8px;align-items:center;">
+      <span class="tag tag-crit"><span style="font-size:8px;">●</span> Elétrica urgente</span>
+      <span class="tag tag-orange"><span style="font-size:8px;">●</span> Monitorar</span>
+      <span class="tag tag-info"><span style="font-size:8px;">●</span> Mecânica</span>
+      <span class="tag tag-ok"><span style="font-size:8px;">●</span> OK</span>
+    </div>
+  </div>
+  <div class="decisions" id="decisionsGrid"></div>
+  <div class="grid3">
+    <div class="card">
+      <div class="section-header" style="margin-bottom:8px;"><span class="section-title">Histórico de tensão hora a hora</span>
+        <select id="chartPlacaSel" onchange="updateChart()" style="background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius);color:var(--text);font-size:11px;padding:4px 8px;"></select>
+      </div>
+      <div class="chart-legend">
+        <span class="cleg"><span class="cleg-dot" style="background:var(--green)"></span>Normal ≥12.4V</span>
+        <span class="cleg"><span class="cleg-dot" style="background:var(--amber)"></span>Atenção 12–12.4V</span>
+        <span class="cleg"><span class="cleg-dot" style="background:var(--red)"></span>Crítico &lt;12V</span>
+        <span class="cleg"><span class="cleg-dot" style="background:#D4537E;border-radius:50%"></span>Falha registrada</span>
+      </div>
+      <div class="chart-wrap"><canvas id="batChart"></canvas></div>
+    </div>
+    <div class="card">
+      <div class="section-header" style="margin-bottom:8px;"><span class="section-title">Falhas por hora do dia</span></div>
+      <p style="font-size:11px;color:var(--text2);margin-bottom:10px;">Identifica se falhas se concentram em períodos noturnos (bateria descarregando sem carga).</p>
+      <div class="heatmap-grid" id="heatmapGrid"></div>
+      <div class="hm-label"><span>00h</span><span>06h</span><span>12h</span><span>18h</span><span>23h</span></div>
+      <div class="divider"></div>
+      <div id="hmInsight" style="font-size:11px;color:var(--text2);line-height:1.6;"></div>
+    </div>
+  </div>
+  <div class="card" style="margin-bottom:20px;">
+    <div class="section-header">
+      <span class="section-title">Análise de correlação — códigos de falha × tensão</span>
+      <div style="display:flex;gap:6px;">
+        <input type="text" id="filterPlaca" placeholder="Filtrar placa..." onkeyup="renderTable()" style="background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius);color:var(--text);font-size:11px;padding:4px 8px;width:140px;">
+        <select id="filterDept" onchange="renderTable()" style="background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius);color:var(--text);font-size:11px;padding:4px 8px;">
+          <option value="">Todos</option><option value="ELÉTRICA">Elétrica</option><option value="MECÂNICA">Mecânica</option>
+        </select>
+      </div>
+    </div>
+    <div class="tbl-wrap"><table class="dtc"><thead><tr><th>Placa</th><th>Data diagnóstico</th><th>Código DTC</th><th>Descrição</th><th>Tensão na hora</th><th>Sensib. bateria</th><th>Correlação</th><th>Departamento</th><th>Ação recomendada</th></tr></thead><tbody id="dtcTbody"></tbody></table></div>
+  </div>
+  <div class="insights-panel" style="margin-bottom:20px;">
+    <div class="section-header"><span class="section-title">Análise automática — insights para o analista</span></div>
+    <div class="insight-list" id="insightList"></div>
+  </div>
+  <div class="card" style="margin-bottom:20px;">
+    <div class="section-header"><span class="section-title">Base de referência — DTCs sensíveis à bateria</span></div>
+    <p style="font-size:11px;color:var(--text2);margin-bottom:12px;">Códigos com <span style="color:var(--red)">alta sensibilidade</span> devem ser investigados no elétrico antes de qualquer intervenção mecânica quando tensão &lt; 12.4V.</p>
+    <div class="tbl-wrap"><table class="dtc"><thead><tr><th>Código</th><th>Descrição</th><th>Sistema</th><th>Sensibilidade bat.</th><th>Tensão crítica</th><th>Departamento</th></tr></thead><tbody id="refTbody"></tbody></table></div>
+  </div>`;
+}
+
+function renderKPIs() {
+  const p = STATE.processed;
+  const urgente = p.filter(d=>d.routing==='ELÉTRICA_URGENTE').length;
+  const monit = p.filter(d=>d.routing==='ELÉTRICA_INVESTIGAR').length;
+  const mec = p.filter(d=>d.routing==='MECÂNICA').length;
+  const critH = Object.values(STATE.vehicles).reduce((s,v)=>s+v.critHours,0);
+
+  set('kpi1', urgente); set('kpi2', monit); set('kpi3', mec);
+  set('kpi4', p.length); set('kpi5', critH);
+
+  if(urgente > 0) {
+    const el = document.getElementById('alertBanner');
+    if(el) { el.className='alert-banner'; el.innerHTML=`⚡ ATENÇÃO: ${urgente} veículo(s) com diagnósticos elétricos urgentes aguardando roteamento para o departamento elétrico.`; }
+  }
+}
+
+function renderDecisions() {
+  const el = document.getElementById('decisionsGrid');
+  if(!el) return;
+  if(!STATE.processed.length) { el.innerHTML='<p style="color:var(--text2);font-size:12px;">Nenhum diagnóstico encontrado.</p>'; return; }
+  el.innerHTML = STATE.processed.map(d => {
+    const vc = d.voltage;
+    const vcStr = vc !== null ? vc.toFixed(2)+'V' : '—';
+    const pct = vc !== null ? Math.min(100, Math.max(0, ((vc-10.5)/4.5)*100)) : 50;
+    const fillColor = vc===null?'var(--text3)':vc<12?'var(--red)':vc<12.4?'var(--amber)':'var(--green)';
+    const rcMap = { ELÉTRICA_URGENTE:['eletrica','Elétrica URGENTE','route-eletrica'], ELÉTRICA_INVESTIGAR:['eletrica-monitor','Investigar elétrica','route-eletrica-monitor'], MECÂNICA:['mecanica','Mecânica','route-mecanica'], OK:['ok','OK','route-ok'] };
+    const [badgeCls, badgeLabel, cardCls] = rcMap[d.routing]||rcMap['OK'];
+    const insClass = d.routing==='ELÉTRICA_URGENTE'?'urgent':d.routing==='ELÉTRICA_INVESTIGAR'?'warn':'';
+    const codeHtml = d.codeDetails.map(cd => {
+      const isElec = cd.info.dept==='ELÉTRICA';
+      const isUnk = cd.info.sys==='Desconhecido';
+      return `<span class="fault-tag ${isElec?'elec-related':isUnk?'unknown':''}" title="${cd.info.desc}">${cd.code}</span>`;
+    }).join('');
+    return `<div class="decision-card ${cardCls}">
+      <div class="dc-header">
+        <span class="dc-plate">${d.placa}</span>
+        <div class="dc-routing"><span class="routing-badge ${badgeCls}">${badgeLabel}</span></div>
+      </div>
+      <div class="dc-body">
+        <div class="dc-bat-row">
+          <span class="dc-bat-val" style="color:${fillColor}">${vcStr}</span>
+          <div class="bat-bar"><div class="bat-fill" style="width:${pct}%;background:${fillColor}"></div></div>
+        </div>
+        <div class="dc-faults">${codeHtml}</div>
+        <div class="dc-insight ${insClass}">${d.routingReason}</div>
+        <div class="dc-meta">
+          <span>${new Date(d.dt).toLocaleDateString('pt-BR')} ${new Date(d.dt).toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'})}</span>
+          ${d.notes ? `<span style="flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="${d.notes}">${d.notes}</span>`:``}
+        </div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function populateChartSelect() {
+  const sel = document.getElementById('chartPlacaSel');
+  if(!sel) return;
+  const placas = Object.keys(STATE.batHistory);
+  sel.innerHTML = placas.map(p=>`<option value="${p}">${p}</option>`).join('');
+  if(placas.length) renderChart(placas[0]);
+}
+
+function updateChart() {
+  const sel = document.getElementById('chartPlacaSel');
+  if(sel) renderChart(sel.value);
+}
+
+function renderChart(placa) {
+  if(!placa) { const sel=document.getElementById('chartPlacaSel'); placa=sel?sel.value:Object.keys(STATE.batHistory)[0]; }
+  if(!placa) return;
+  const hist = (STATE.batHistory[placa]||[]).slice(-168);
+  const labels = hist.map(p => { const d=p.dt; return `${String(d.getDate()).padStart(2,'0')}/${String(d.getMonth()+1).padStart(2,'0')} ${String(d.getHours()).padStart(2,'0')}h`; });
+  const voltages = hist.map(p=>p.v);
+  const ptColors = voltages.map(v=>v<12?'#F85149':v<12.4?'#F0A500':'#3FB950');
+  const faultTimes = new Set();
+  STATE.processed.filter(d=>d.placa===placa).forEach(d => {
+    const dd=new Date(d.dt);
+    faultTimes.add(`${String(dd.getDate()).padStart(2,'0')}/${String(dd.getMonth()+1).padStart(2,'0')} ${String(dd.getHours()).padStart(2,'0')}h`);
+  });
+  const faultData = labels.map((l,i) => faultTimes.has(l) ? voltages[i] : null);
+  const canvas = document.getElementById('batChart');
+  if(!canvas) return;
+  if(STATE.batChart) STATE.batChart.destroy();
+  STATE.batChart = new Chart(canvas, {
+    data: {
+      labels,
+      datasets: [
+        { type:'line', label:'Tensão (V)', data:voltages, borderColor:'#58A6FF', backgroundColor:'rgba(88,166,255,.06)', borderWidth:1.5, fill:true, tension:0.35,
+          pointRadius: voltages.map((v,i)=>faultTimes.has(labels[i])?0:(v<12?2:0)),
+          pointBackgroundColor: ptColors, segment:{ borderColor: ctx => { const v=ctx.p1.parsed.y; return v<12?'#F85149':v<12.4?'#F0A500':'#3FB950'; } } },
+        { type:'scatter', label:'Falha', data: faultData.map((v,i)=>v!==null?{x:i,y:v}:null).filter(Boolean),
+          backgroundColor:'#D4537E', pointRadius:7, pointStyle:'circle' }
+      ]
+    },
+    options: { responsive:true, maintainAspectRatio:false,
+      plugins:{ legend:{display:false}, tooltip:{ callbacks:{ label: ctx => ctx.datasetIndex===1?' Falha registrada':' '+ctx.parsed.y.toFixed(2)+'V' } } },
+      scales: {
+        x:{ ticks:{maxTicksLimit:10,autoSkip:true,font:{size:9},color:'#8B949E'}, grid:{color:'rgba(255,255,255,.04)'}, border:{color:'rgba(255,255,255,.08)'} },
+        y:{ min:10.2, max:15.0, ticks:{font:{size:9},color:'#8B949E',callback:v=>v.toFixed(1)+'V'},
+          grid:{ color: ctx=>{ const v=ctx.tick.value; if(Math.abs(v-12)<.05) return 'rgba(248,81,73,.3)'; if(Math.abs(v-12.4)<.05) return 'rgba(240,165,0,.3)'; return 'rgba(255,255,255,.04)'; }},
+          border:{color:'rgba(255,255,255,.08)'} }
+      }
+    }
+  });
+}
+
+function renderHeatmap() {
+  const grid = document.getElementById('heatmapGrid'); const hint = document.getElementById('hmInsight');
+  if(!grid) return;
+  const counts = new Array(24).fill(0);
+  STATE.processed.forEach(d => { const h=new Date(d.dt).getHours(); counts[h]++; });
+  const max = Math.max(...counts,1);
+  const nightFaults = counts.slice(22).reduce((a,b)=>a+b,0) + counts.slice(0,6).reduce((a,b)=>a+b,0);
+  const totalFaults = counts.reduce((a,b)=>a+b,0);
+  grid.innerHTML = counts.map((c,i) => {
+    const int = Math.round((c/max)*255);
+    const color = c===0?'var(--surface2)':`rgba(240,165,0,${0.15+0.85*(c/max)})`;
+    return `<div class="hm-cell" style="background:${color}" data-tip="${i}h: ${c} falha(s)"></div>`;
+  }).join('');
+  if(hint) {
+    const pct = totalFaults?Math.round(nightFaults/totalFaults*100):0;
+    hint.innerHTML = pct>40 ? `<span style="color:var(--amber);">⚠ ${pct}% das falhas ocorrem no período noturno (22h–06h).</span> Possível descarga da bateria sem recarga adequada. Verificar alternador e rotina de uso do veículo.`
+      : `${pct}% das falhas em período noturno. Distribuição horária dentro do esperado.`;
+  }
+}
+
+function renderTable() {
+  const tbody = document.getElementById('dtcTbody'); if(!tbody) return;
+  const filterP = (document.getElementById('filterPlaca')||{value:''}).value.toUpperCase();
+  const filterD = (document.getElementById('filterDept')||{value:''}).value;
+  let rows = [];
+  STATE.processed.forEach(d => {
+    d.codeDetails.forEach(cd => {
+      if(filterP && !d.placa.includes(filterP)) return;
+      if(filterD && cd.info.dept !== filterD) return;
+      rows.push({ d, cd });
+    });
+  });
+  if(!rows.length) { tbody.innerHTML='<tr><td colspan="9" style="text-align:center;color:var(--text2);padding:24px;">Nenhum resultado.</td></tr>'; return; }
+  tbody.innerHTML = rows.map(({d,cd}) => {
+    const v = d.voltage;
+    const vStr = v!==null?v.toFixed(2)+'V':'—';
+    const vTag = v===null?'tag-info':v<12?'tag-crit':v<12.4?'tag-warn':'tag-ok';
+    const sensColor = {DIRETO:'tag-crit',ALTO:'tag-crit',MÉDIO:'tag-warn',BAIXO:'tag-ok',DESCONHECIDO:'tag-info'}[cd.info.batSens]||'tag-info';
+    const corrC = cd.corr>=70?'#F85149':cd.corr>=40?'#F0A500':cd.corr>=15?'#E3894B':'#3FB950';
+    const dept = cd.info.dept;
+    const deptTag = dept==='ELÉTRICA'?'tag-crit':'tag-info';
+    const acao = d.routing==='ELÉTRICA_URGENTE'?'Encaminhar elétrica imediatamente':d.routing==='ELÉTRICA_INVESTIGAR'?'Verificar sistema de carga':'Seguir fluxo mecânico padrão';
+    const acaoTag = d.routing==='ELÉTRICA_URGENTE'?'tag-crit':d.routing==='ELÉTRICA_INVESTIGAR'?'tag-warn':'tag-info';
+    return `<tr>
+      <td><span class="mono" style="font-size:12px;font-weight:500;">${d.placa}</span></td>
+      <td style="color:var(--text2);font-size:11px;">${new Date(d.dt).toLocaleDateString('pt-BR')} ${new Date(d.dt).toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'})}</td>
+      <td><span class="mono" style="background:var(--surface2);border:1px solid var(--border);padding:2px 7px;border-radius:4px;font-size:11px;">${cd.code}</span></td>
+      <td style="font-size:11px;color:var(--text2);max-width:200px;">${cd.info.desc}</td>
+      <td><span class="tag ${vTag}">${vStr}</span></td>
+      <td><span class="tag ${sensColor}">${cd.info.batSens}</span></td>
+      <td style="min-width:90px;">
+        <div style="font-size:11px;color:${corrC};font-weight:500;margin-bottom:3px;">${cd.corr}%</div>
+        <div class="corr-bar"><div class="corr-fill" style="width:${cd.corr}%;background:${corrC}"></div></div>
+      </td>
+      <td><span class="tag ${deptTag}">${dept}</span></td>
+      <td><span class="tag ${acaoTag}" style="font-size:10px;">${acao}</span></td>
+    </tr>`;
+  }).join('');
+}
+
+function renderInsights() {
+  const el = document.getElementById('insightList'); if(!el) return;
+  const insights = generateInsights();
+  el.innerHTML = insights.map(i => `<div class="insight-item ${i.level}"><span class="insight-icon">${i.icon}</span><span class="insight-text">${i.text}</span></div>`).join('');
+}
+
+function generateInsights() {
+  const ins = [];
+  const p = STATE.processed;
+  const veh = Object.values(STATE.vehicles);
+
+  // 1. Urgência
+  const urgent = p.filter(d=>d.routing==='ELÉTRICA_URGENTE');
+  if(urgent.length) ins.push({ level:'critical', icon:'⚡', text:`<strong>${urgent.length} diagnóstico(s) requerem ação imediata</strong> no departamento elétrico: veículos ${urgent.map(d=>d.placa).join(', ')}. Tensão abaixo de 12V com códigos elétricos ativos indica risco de danos permanentes a módulos eletrônicos.` });
+
+  // 2. Padrão de código mais frequente
+  const codeCounts = {};
+  p.forEach(d=>d.codes.forEach(c=>{codeCounts[c]=(codeCounts[c]||0)+1;}));
+  const topCode = Object.entries(codeCounts).sort((a,b)=>b[1]-a[1])[0];
+  if(topCode) {
+    const info = DTC_DB[topCode[0]];
+    ins.push({ level: info&&info.batSens==='DIRETO'?'critical':'warning', icon:'📊',
+      text: `<strong>Código mais frequente: ${topCode[0]}</strong> (${topCode[1]}x). ${info?info.desc:'Não catalogado'}. ${info&&(info.batSens==='DIRETO'||info.batSens==='ALTO')?'Alta sensibilidade à tensão — recorrência pode indicar bateria com capacidade reduzida ou alternador com defeito.':'Investigar padrão de ocorrência.'}` });
+  }
+
+  // 3. Veículo com mais horas críticas
+  const worst = veh.sort((a,b)=>b.critHours-a.critHours)[0];
+  if(worst && worst.critHours > 0) ins.push({ level:'warning', icon:'🔋',
+    text: `<strong>${worst.placa} acumulou ${worst.critHours}h com tensão abaixo de 12V</strong>. Exposição prolongada a subtensão degrada quimicamente a bateria e pode causar falsos positivos em módulos de controle. Recomendar teste de carga e análise do alternador.` });
+
+  // 4. Correlação noturna
+  const nightFaults = p.filter(d=>{ const h=new Date(d.dt).getHours(); return h>=22||h<6; }).length;
+  const pct = p.length?Math.round(nightFaults/p.length*100):0;
+  if(pct > 35) ins.push({ level:'warning', icon:'🌙',
+    text: `<strong>${pct}% das falhas ocorrem entre 22h e 06h</strong>. Padrão noturno sugere descarga excessiva sem reposição de carga. Verificar se veículos permanecem ligados tempo suficiente para recarregar (mínimo 30 min de uso após partida a frio).` });
+
+  // 5. CAN bus
+  const canFaults = p.filter(d=>d.codes.some(c=>c.startsWith('U0')));
+  if(canFaults.length > 1) ins.push({ level:'critical', icon:'🔌',
+    text: `<strong>${canFaults.length} diagnósticos com falhas de rede CAN</strong> (U0xxx). Falhas CAN em múltiplos veículos com bateria baixa indicam padrão sistêmico — a rede CAN é a primeira a falhar com tensão abaixo de 11.5V. Investigação elétrica prioritária.` });
+
+  // 6. Veículos sem correlação (OK)
+  const okCount = p.filter(d=>d.routing==='MECÂNICA').length;
+  if(okCount > 0) ins.push({ level:'success', icon:'✔',
+    text: `<strong>${okCount} diagnóstico(s) sem correlação com bateria</strong>. Estes veículos podem seguir diretamente para o fluxo de manutenção mecânica sem necessidade de investigação elétrica prévia.` });
+
+  // 7. Alternador
+  const altFaults = p.filter(d=>d.codes.some(c=>c==='P0625'||c==='P0626'));
+  if(altFaults.length) ins.push({ level:'critical', icon:'⚙',
+    text: `<strong>Código de alternador detectado</strong> em: ${altFaults.map(d=>d.placa).join(', ')}. Falha no sistema de carga impede a reposição de energia na bateria — causa raiz de múltiplas outras falhas. <em>Prioridade máxima</em> para departamento elétrico.` });
+
+  if(!ins.length) ins.push({ level:'info', icon:'ℹ', text:'Dados insuficientes para gerar insights automáticos. Aguardando mais registros de diagnóstico.' });
+  return ins;
+}
+
+function renderReference() {
+  const tbody = document.getElementById('refTbody'); if(!tbody) return;
+  const elecOnly = Object.entries(DTC_DB).filter(([,v])=>v.batSens==='DIRETO'||v.batSens==='ALTO');
+  tbody.innerHTML = elecOnly.map(([code,info]) => {
+    const sc = {DIRETO:'tag-crit',ALTO:'tag-crit'}[info.batSens]||'tag-warn';
+    return `<tr>
+      <td><span class="mono" style="font-size:12px;">${code}</span></td>
+      <td style="font-size:11px;color:var(--text2);">${info.desc}</td>
+      <td style="font-size:11px;">${info.sys}</td>
+      <td><span class="tag ${sc}">${info.batSens}</span></td>
+      <td><span class="mono" style="font-size:11px;color:${info.voltCrit<12?'var(--red)':'var(--amber)'};">${info.voltCrit.toFixed(1)}V</span></td>
+      <td><span class="tag ${info.dept==='ELÉTRICA'?'tag-crit':'tag-info'}">${info.dept}</span></td>
+    </tr>`;
+  }).join('');
+}
+
+// ═══════════════════════════════════════════════════════════
+// UTILS
+// ═══════════════════════════════════════════════════════════
+function set(id, val) { const el=document.getElementById(id); if(el) el.textContent=val; }
+function setStatus(state, text) {
+  const dot=document.getElementById('statusDot'), txt=document.getElementById('statusText');
+  if(dot) { dot.className='status-dot'+(state==='live'?' live':state==='error'?' error':''); }
+  if(txt) txt.textContent=text;
+}
+function setupAutoRefresh() {
+  if(STATE.refreshTimer) clearInterval(STATE.refreshTimer);
+  const mins = STATE.config.refresh || 0;
+  if(mins > 0) STATE.refreshTimer = setInterval(loadData, mins*60000);
+}
+function exportReport() {
+  const blob = new Blob([document.documentElement.outerHTML], {type:'text/html'});
+  const a = document.createElement('a'); a.href=URL.createObjectURL(blob);
+  a.download=`diagfleet_${new Date().toISOString().slice(0,10)}.html`; a.click();
+}
+
+// ═══════════════════════════════════════════════════════════
+// INIT
+// ═══════════════════════════════════════════════════════════
+(function init() {
+  try {
+    const saved = JSON.parse(localStorage.getItem('diagfleet_cfg')||'null');
+    if(saved) { STATE.config=saved; loadData(); setupAutoRefresh(); return; }
+  } catch(e) {}
+  openModal();
+})();
+</script>
 </body>
 </html>
